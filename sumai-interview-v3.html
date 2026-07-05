@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>住まいの対話</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="住まいの対話">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f7f5f0">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@300;400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1a18;--ink-mid:#4a4a46;--ink-light:#8a8a84;--ink-faint:#d0cfc8;
+  --paper:#f7f5f0;--paper-warm:#edeae2;--paper-card:#ffffff;
+  --accent:#4a7c6f;--accent-light:#d4e8e2;--accent-mid:#2d5c52;--accent-dim:#eaf4f1;
+  --serif:'Noto Serif JP',serif;--sans:'Noto Sans JP',sans-serif;
+  --r:12px;--r-sm:8px;
+}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* header */
+.hdr{padding:12px 20px 0;border-bottom:1px solid var(--ink-faint);background:var(--paper);position:sticky;top:0;z-index:10}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink-mid);letter-spacing:.08em}
+.logo span{font-size:10px;font-weight:300;color:var(--ink-light);display:block;letter-spacing:.14em;margin-top:1px}
+.stage{font-size:11px;color:var(--accent-mid);background:var(--accent-dim);padding:4px 11px;border-radius:20px;letter-spacing:.04em;transition:all .4s}
+
+/* progress strip */
+.prog{display:flex;max-width:520px;margin:12px auto 0;padding:0 4px 10px}
+.prog-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+.prog-step::before{content:'';position:absolute;top:6px;left:calc(-50% + 12px);right:calc(50% + 12px);height:1.5px;background:var(--ink-faint);transition:background .4s}
+.prog-step:first-child::before{display:none}
+.prog-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--ink-faint);background:var(--paper);transition:all .4s;display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1;color:#fff}
+.prog-lbl{font-size:9px;letter-spacing:.05em;color:var(--ink-light);white-space:nowrap;transition:all .4s}
+.prog-step.done .prog-dot{background:var(--accent);border-color:var(--accent)}
+.prog-step.done .prog-dot::after{content:'✓'}
+.prog-step.done::before,.prog-step.now::before{background:var(--accent)}
+.prog-step.done .prog-lbl{color:var(--accent-mid)}
+.prog-step.now .prog-dot{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 3px var(--accent-light)}
+.prog-step.now .prog-lbl{color:var(--accent-mid);font-weight:500}
+
+/* chat */
+.chat{flex:1;max-width:640px;width:100%;margin:0 auto;padding:24px 16px 180px;display:flex;flex-direction:column}
+
+/* messages */
+.mg{margin-bottom:20px}
+.msg{display:flex;gap:10px;align-items:flex-start}
+.av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;margin-top:2px}
+.av.ai{background:var(--accent-light);color:var(--accent-mid);font-family:var(--serif)}
+.av.usr{background:var(--paper-warm);color:var(--ink-mid)}
+.bbl{padding:11px 15px;border-radius:var(--r);font-size:14px;line-height:1.9;max-width:480px}
+.bbl.ai{background:var(--paper-card);color:var(--ink);border:1px solid var(--ink-faint);border-radius:4px var(--r) var(--r) var(--r)}
+.bbl.usr{background:var(--accent);color:#fff;border-radius:var(--r) 4px var(--r) var(--r);margin-left:auto;font-weight:300}
+.msg.usr{flex-direction:row-reverse}
+
+/* typing */
+.typing{display:flex;gap:10px;align-items:center;margin-bottom:8px;opacity:0;transition:opacity .3s}
+.typing.on{opacity:1}
+.tav{width:30px;height:30px;border-radius:50%;background:var(--accent-light);color:var(--accent-mid);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:12px;flex-shrink:0}
+.dots{background:var(--paper-card);border:1px solid var(--ink-faint);border-radius:4px var(--r) var(--r) var(--r);padding:12px 16px;display:flex;gap:5px;align-items:center}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--ink-faint);animation:blink 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3;transform:scale(.9)}40%{opacity:1;transform:scale(1.1)}}
+
+/* 選択肢UI（選んで確定）*/
+.choice-block{margin:0 0 20px 40px;background:var(--paper-card);border:1px solid var(--ink-faint);border-radius:var(--r);overflow:hidden}
+.choice-list{display:flex;flex-direction:column}
+.choice-item{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--ink-faint);transition:background .12s;user-select:none}
+.choice-item:last-child{border-bottom:none}
+.choice-item:hover{background:var(--accent-dim)}
+.choice-item.selected{background:var(--accent-dim)}
+.choice-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink-faint);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.choice-item.selected .choice-radio{border-color:var(--accent);background:var(--accent)}
+.choice-item.selected .choice-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+.choice-label{font-size:13px;color:var(--ink-mid);line-height:1.5}
+.choice-item.selected .choice-label{color:var(--ink);font-weight:500}
+.choice-footer{padding:10px 14px;border-top:1px solid var(--ink-faint);display:flex;gap:8px;align-items:center;background:var(--paper)}
+.choice-hint{font-size:11px;color:var(--ink-light);flex:1}
+.confirm-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:8px 18px;font-size:13px;font-family:var(--sans);cursor:pointer;font-weight:400;letter-spacing:.03em;transition:background .15s;opacity:.4;pointer-events:none}
+.confirm-btn.active{opacity:1;pointer-events:auto}
+.confirm-btn.active:hover{background:var(--accent-mid)}
+
+/* reflection card */
+.rc{margin:0 0 20px 40px;background:linear-gradient(140deg,#f2ede6,#e8f2ef);border:1px solid var(--ink-faint);border-left:3px solid var(--accent);border-radius:var(--r);padding:16px 18px}
+.rc-eye{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-mid);margin-bottom:11px}
+.rc-q{font-size:13px;color:var(--ink-mid);line-height:1.8;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;gap:9px}
+.rc-q:last-of-type{border-bottom:none}
+.rc-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:9px}
+.rc-foot{margin-top:12px;font-size:12px;color:var(--ink-light);font-style:italic}
+
+/* save indicator */
+.save-ind{margin:0 0 16px 0;padding:9px 14px;background:#f0f7f0;border:1px solid #b8d8b8;border-radius:var(--r);font-size:12px;color:#2d6a2d;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.save-check{font-size:14px;font-weight:500}
+.save-label{font-weight:500}
+.save-hint{color:#5a8a5a;font-style:italic}
+
+/* resume card */
+.resume-card{margin:20px 0;padding:20px;background:var(--paper-card);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--r);max-width:480px}
+.rs-hd{font-family:var(--serif);font-size:15px;color:var(--accent-mid);margin-bottom:6px;font-weight:400;letter-spacing:.03em}
+.rs-meta{font-size:11px;color:var(--ink-light);margin-bottom:14px}
+.rs-secs{margin-bottom:16px;display:flex;flex-direction:column;gap:5px}
+.rs-sec{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-mid)}
+.rs-ck{color:var(--accent);font-size:13px;font-weight:600}
+.rs-btns{display:flex;gap:8px}
+.rs-btn{padding:8px 18px;border-radius:var(--r-sm);font-size:13px;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.rs-btn-p{background:var(--accent);color:#fff;border:none}
+.rs-btn-p:hover{background:var(--accent-mid)}
+.rs-btn-s{background:transparent;color:var(--ink-mid);border:1px solid var(--ink-faint)}
+.rs-btn-s:hover{background:var(--paper-warm)}
+.rs-sep{text-align:center;font-size:11px;color:var(--ink-faint);padding:16px 0;letter-spacing:.1em}
+
+/* ── セクション遷移ボタン ── */
+.step-next-card{margin:0 0 20px 0;padding:16px 18px;background:var(--paper-card);border:1px solid var(--accent-light);border-left:3px solid var(--accent);border-radius:var(--r);display:flex;flex-direction:column;gap:10px}
+.step-next-label{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-mid)}
+.step-next-title{font-size:13px;color:var(--ink-mid);line-height:1.7}
+.step-next-btns{display:flex;gap:8px;flex-wrap:wrap}
+.step-next-btn-p{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:9px 22px;font-size:13px;font-family:var(--sans);cursor:pointer;transition:background .15s;letter-spacing:.03em}
+.step-next-btn-p:hover{background:var(--accent-mid)}
+.step-next-btn-p:disabled{opacity:.5;cursor:default}
+.step-next-btn-s{background:transparent;color:var(--ink-mid);border:1px solid var(--ink-faint);border-radius:var(--r-sm);padding:9px 16px;font-size:13px;font-family:var(--sans);cursor:pointer;transition:all .15s}
+.step-next-btn-s:hover{background:var(--paper-warm)}
+.step-next-btn-s:disabled{opacity:.5;cursor:default}
+
+/* voice banner */
+.vb{background:var(--accent-dim);border:1px solid var(--accent-light);border-radius:var(--r);padding:12px 15px;margin-bottom:20px;display:flex;align-items:center;gap:11px}
+.vb-txt{flex:1;font-size:13px;color:var(--ink-mid);line-height:1.5}
+.vb-txt strong{font-weight:500;color:var(--ink);display:block;margin-bottom:1px}
+.vb-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:7px 13px;font-size:12px;font-family:var(--sans);cursor:pointer;white-space:nowrap;transition:background .15s}
+.vb-btn:hover{background:var(--accent-mid)}
+.vb-btn.rec{background:#c0392b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* input */
+.inp-wrap{position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--ink-faint);padding:12px 16px 16px}
+.inp-inner{max-width:640px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+.inp{flex:1;background:var(--paper-card);border:1px solid var(--ink-faint);border-radius:var(--r);padding:10px 14px;font-size:14px;font-family:var(--sans);font-weight:300;color:var(--ink);resize:none;min-height:44px;max-height:120px;line-height:1.6;outline:none;transition:border-color .2s}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--ink-faint)}
+.inp.listening{border-color:#c0392b;background:#fff8f8}
+.send{width:40px;height:40px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;transition:all .15s}
+.send:hover{background:var(--accent-mid);transform:scale(1.05)}
+.send svg{width:15px;height:15px}
+.mic-btn{width:40px;height:40px;border-radius:50%;background:transparent;border:1.5px solid var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ink-light);transition:all .15s}
+.mic-btn:hover{border-color:var(--accent);color:var(--accent)}
+.mic-btn.rec{background:#c0392b;border-color:#c0392b;color:#fff;animation:pulse 1s infinite}
+.mic-btn svg{width:16px;height:16px}
+.inp-hint{font-size:11px;color:var(--ink-faint);text-align:center;margin-top:6px}
+
+/* ── 巻き戻しボタン & モーダル ── */
+.rewind-btn{font-size:11px;color:var(--ink-light);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:20px;font-family:var(--sans);transition:all .15s;display:none;letter-spacing:.03em}
+.rewind-btn.visible{display:block}
+.rewind-btn:hover{background:var(--paper-warm);color:var(--ink-mid)}
+.rewind-ov{position:fixed;inset:0;background:var(--paper);z-index:90;display:none;flex-direction:column}
+.rewind-ov.open{display:flex}
+.rewind-hdr{padding:14px 16px;border-bottom:1px solid var(--ink-faint);display:flex;align-items:center;gap:12px;background:var(--paper);flex-shrink:0}
+.rewind-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-mid);background:none;border:none;font-size:18px;padding:0}
+.rewind-ttl{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink)}
+.rewind-desc{font-size:12px;color:var(--ink-light);padding:12px 16px 4px;flex-shrink:0}
+.rewind-body{flex:1;overflow-y:auto;padding:8px 16px 24px}
+.rewind-item{padding:13px 15px;border:1px solid var(--ink-faint);border-radius:var(--r);margin-bottom:10px;cursor:pointer;transition:all .15s}
+.rewind-item:hover{border-color:var(--accent);background:var(--accent-dim)}
+.rewind-item-stage{font-size:10px;font-weight:500;letter-spacing:.1em;color:var(--accent-mid);margin-bottom:5px}
+.rewind-item-text{font-size:13px;color:var(--ink-mid);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rewind-item-num{font-size:10px;color:var(--ink-faint);margin-top:5px}
+
+/* APIキー設定UI */
+.apikey-modal{position:fixed;inset:0;background:rgba(26,26,24,.8);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.apikey-card{background:var(--paper-card);border-radius:var(--r);max-width:480px;width:100%;padding:28px 24px}
+.apikey-ttl{font-family:var(--serif);font-size:17px;font-weight:400;margin-bottom:8px}
+.apikey-desc{font-size:13px;color:var(--ink-mid);line-height:1.8;margin-bottom:20px}
+.apikey-inp{width:100%;border:1px solid var(--ink-faint);border-radius:var(--r-sm);padding:10px 14px;font-size:13px;font-family:var(--sans);color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:12px}
+.apikey-inp:focus{border-color:var(--accent)}
+.apikey-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 20px;font-size:13px;font-family:var(--sans);cursor:pointer;width:100%;transition:background .15s}
+.apikey-btn:hover{background:var(--accent-mid)}
+.apikey-note{font-size:11px;color:var(--ink-light);margin-top:10px;line-height:1.6}
+
+/* report */
+.rep-ov{position:fixed;inset:0;background:rgba(26,26,24,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.rep-ov.open{display:flex}
+.rep-card{background:var(--paper-card);border-radius:var(--r);max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:28px 24px}
+.rep-ttl{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:3px;letter-spacing:.04em}
+.rep-sub{font-size:11px;color:var(--ink-light);margin-bottom:20px;letter-spacing:.06em}
+.rep-sec{margin-bottom:16px}
+.rep-lbl{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.rep-txt{font-size:13px;color:var(--ink-mid);line-height:1.9;white-space:pre-wrap}
+.rep-acts{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--ink-faint)}
+.rb{flex:1;padding:9px;border-radius:var(--r-sm);font-size:13px;font-family:var(--sans);cursor:pointer;transition:background .15s}
+.rb.p{background:var(--accent);color:#fff;border:none}
+.rb.p:hover{background:var(--accent-mid)}
+.rb.s{background:transparent;color:var(--ink-mid);border:1px solid var(--ink-faint)}
+.rb.s:hover{background:var(--paper-warm)}
+.rep-load{text-align:center;padding:36px 0;color:var(--ink-light);font-size:14px}
+.rep-spin{width:24px;height:24px;border:2px solid var(--ink-faint);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#btm{height:1px}
+@media(max-width:480px){.chat{padding:18px 12px 170px}.bbl{font-size:13px}.choice-block,.rc{margin-left:0}}
+
+/* ── フルレポートビュー ── */
+.fullrep-ov{position:fixed;inset:0;background:var(--paper);z-index:150;display:none;flex-direction:column}
+.fullrep-ov.open{display:flex}
+.fullrep-hdr{padding:14px 20px;border-bottom:1px solid var(--ink-faint);display:flex;align-items:center;justify-content:space-between;background:var(--paper-card);flex-shrink:0}
+.fullrep-back{background:none;border:none;color:var(--ink-mid);font-size:14px;cursor:pointer;font-family:var(--sans);padding:4px 8px}
+.fullrep-nav-ttl{font-family:var(--serif);font-size:14px;color:var(--ink-mid);letter-spacing:.06em}
+.fullrep-print-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:8px 16px;font-size:12px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em}
+.fullrep-body{flex:1;overflow-y:auto;padding:40px 20px 80px}
+.fullrep-page{max-width:740px;margin:0 auto;background:var(--paper-card);padding:60px 64px;box-shadow:0 2px 20px rgba(0,0,0,.08);border-radius:var(--r)}
+.fullrep-cover{text-align:center;padding:48px 0 64px;border-bottom:1px solid var(--ink-faint);margin-bottom:56px}
+.fullrep-cover-label{font-size:10px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase;margin-bottom:20px}
+.fullrep-cover-ttl{font-family:var(--serif);font-size:28px;font-weight:300;letter-spacing:.06em;margin-bottom:24px;color:var(--ink)}
+.fullrep-cover-date{font-size:12px;color:var(--ink-light);letter-spacing:.08em}
+.fullrep-part-hdr{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-light);border-bottom:1px solid var(--ink-faint);padding-bottom:8px;margin:56px 0 32px;display:flex;align-items:center;gap:10px}
+.fullrep-part-hdr span{background:var(--ink);color:var(--paper-card);padding:2px 9px;border-radius:2px;font-size:9px;letter-spacing:.1em}
+/* Q&A */
+.qa-heading{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink);margin:36px 0 14px;padding-bottom:6px;border-bottom:1px solid var(--accent-light)}
+.qa-heading:first-child{margin-top:0}
+.qa-q{display:flex;gap:14px;margin-bottom:6px;padding:12px 16px;background:var(--paper-warm);border-radius:var(--r-sm)}
+.qa-a{display:flex;gap:14px;margin-bottom:18px;padding:12px 16px}
+.qa-label{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--accent);min-width:14px;padding-top:1px}
+.qa-text{font-size:13px;color:var(--ink-mid);line-height:1.9}
+.qa-gap{height:4px}
+/* Part B blocks */
+.fullrep-block{margin-bottom:44px}
+.fullrep-block-ttl{font-family:var(--serif);font-size:19px;font-weight:300;color:var(--ink);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--ink-faint);letter-spacing:.04em}
+.fullrep-cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.fullrep-col-lbl,.fullrep-sub-lbl,.fullrep-space-lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px;font-weight:500}
+.fullrep-sub{margin-bottom:22px}
+.fullrep-space{margin-bottom:14px;padding:14px 16px;border:1px solid var(--ink-faint);border-radius:var(--r-sm)}
+.fullrep-list{list-style:none;padding:0}
+.fullrep-list li{font-size:13px;color:var(--ink-mid);line-height:1.9;padding-left:14px;position:relative;margin-bottom:3px}
+.fullrep-list li::before{content:'・';position:absolute;left:0;color:var(--accent)}
+.fullrep-empty{font-size:13px;color:var(--ink-light);font-style:italic}
+.fullrep-closing{margin-top:56px;padding:28px 32px;background:var(--paper-warm);border-radius:var(--r);border-left:3px solid var(--accent)}
+.fullrep-closing p{font-size:13px;color:var(--ink-mid);line-height:2;margin-bottom:16px}
+.fullrep-closing p:last-child{margin-bottom:0}
+/* print */
+@media print{
+  body>*:not(.fullrep-ov){display:none!important}
+  .fullrep-ov{position:static!important;display:block!important}
+  .fullrep-hdr,.no-print{display:none!important}
+  .fullrep-body{overflow:visible;padding:0}
+  .fullrep-page{max-width:none;box-shadow:none;padding:15mm 18mm;border-radius:0}
+  .fullrep-block{page-break-inside:avoid}
+  .fullrep-space{page-break-inside:avoid}
+  .qa-q,.qa-a{page-break-inside:avoid}
+  @page{size:A4 portrait;margin:0}
+}
+
+/* ── ガイダンス画面 ── */
+.guide-ov{position:fixed;inset:0;background:var(--paper);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;transition:opacity .5s;overflow-y:auto}
+.guide-ov.show{display:flex}
+.guide-ov.hidden{opacity:0;pointer-events:none}
+.guide-inner{max-width:440px;width:100%;margin:auto}
+.guide-logo{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--ink);letter-spacing:.06em;margin-bottom:4px}
+.guide-logo-sub{font-size:11px;color:var(--ink-light);letter-spacing:.16em;margin-bottom:32px}
+.guide-lead{font-size:14px;color:var(--ink-mid);line-height:1.9;margin-bottom:28px}
+.guide-items{display:flex;flex-direction:column;gap:14px;margin-bottom:32px}
+.guide-item{display:flex;gap:14px;align-items:flex-start}
+.guide-icon{width:32px;height:32px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.guide-txt{font-size:13px;color:var(--ink-mid);line-height:1.7}
+.guide-txt strong{color:var(--ink);font-weight:500;display:block;margin-bottom:1px}
+.guide-start{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:14px;font-size:15px;font-family:var(--serif);cursor:pointer;letter-spacing:.06em;transition:background .2s}
+.guide-start:hover{background:var(--accent-mid)}
+.guide-warn{background:#fdf6ec;border:1px solid #ecd9b8;border-radius:var(--r-sm);padding:12px 14px}
+.guide-warn .guide-txt{font-size:12px;line-height:1.8}
+.guide-warn u{text-decoration-color:#c9862a;text-underline-offset:2px}
+.guide-import{text-align:center;font-size:12px;color:var(--ink-light);margin-top:14px}
+.guide-import-link{color:var(--accent-mid);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.inapp-banner{position:fixed;top:0;left:0;right:0;z-index:300;background:#b3541e;color:#fff;font-size:12px;line-height:1.6;padding:10px 14px;text-align:center}
+.rc-next{display:block;width:100%;margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:11px;font-size:13px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;transition:background .2s}
+.rc-next:hover{background:var(--accent-mid)}
+.rc-next:disabled{opacity:.5;cursor:default}
+.price-row{border:1px solid var(--ink-faint);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:10px;background:var(--paper-card)}
+.price-row-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.price-step{font-size:10px;letter-spacing:.12em;color:var(--accent-mid);background:var(--accent-dim);padding:3px 9px;border-radius:20px}
+.price-amt{font-family:var(--serif);font-size:16px;color:var(--ink)}
+.price-row-ttl{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px}
+.price-row-desc{font-size:12px;color:var(--ink-mid);line-height:1.7}
+.pricing-note{font-size:11px;color:var(--ink-light);line-height:1.8;margin:14px 0 20px}
+/* 支払いゲート */
+.paygate{border:1.5px solid var(--accent);border-radius:var(--r);background:var(--paper-card);padding:22px 24px;margin:16px 0;text-align:center}
+.paygate-badge{display:inline-block;font-size:10px;letter-spacing:.14em;color:var(--accent-mid);background:var(--accent-dim);padding:4px 12px;border-radius:20px;margin-bottom:12px}
+.paygate-ttl{font-family:var(--serif);font-size:17px;color:var(--ink);margin-bottom:6px;letter-spacing:.04em}
+.paygate-desc{font-size:12px;color:var(--ink-mid);line-height:1.8;margin-bottom:14px}
+.paygate-price{font-family:var(--serif);font-size:28px;font-weight:300;color:var(--ink);margin-bottom:14px}
+.paygate-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:12px 32px;font-size:14px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;transition:background .2s}
+.paygate-btn:hover{background:var(--accent-mid)}
+.paygate-note{font-size:10px;color:var(--ink-light);margin-top:10px}
+/* テスト決済画面 */
+.mock-pay-ov{position:fixed;inset:0;background:rgba(26,26,24,.45);z-index:400;display:none;align-items:center;justify-content:center;padding:24px}
+.mock-pay-ov.open{display:flex}
+.mock-pay-card{background:#fff;border-radius:14px;max-width:360px;width:100%;padding:26px 26px 20px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.mock-pay-hd{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.mock-pay-test{font-size:9px;letter-spacing:.1em;color:#b3541e;background:#fdf6ec;border:1px solid #ecd9b8;padding:3px 8px;border-radius:20px}
+.mock-pay-item{font-size:12px;color:var(--ink-mid)}
+.mock-pay-amt{font-family:var(--serif);font-size:30px;font-weight:300;color:var(--ink);margin:4px 0 16px}
+.mock-pay-methods{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.mock-pay-m{border:1px solid var(--ink-faint);border-radius:8px;padding:11px 14px;font-size:13px;color:var(--ink-mid);background:#fafaf8}
+.mock-pay-note{font-size:10px;color:var(--ink-light);line-height:1.7;margin-bottom:14px}
+.mock-pay-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:13px;font-size:14px;font-family:var(--sans);cursor:pointer;margin-bottom:8px}
+.mock-pay-btn:hover{background:var(--accent-mid)}
+.mock-pay-cancel{width:100%;background:none;border:none;color:var(--ink-light);font-size:12px;font-family:var(--sans);cursor:pointer;padding:8px}
+
+/* ── 要望書ヘッダーボタン ── */
+.rep-hdr-btn{font-size:11px;color:var(--accent-mid);background:var(--accent-dim);border:none;padding:5px 11px;border-radius:20px;cursor:pointer;font-family:var(--sans);display:none;transition:background .15s;letter-spacing:.04em}
+.rep-hdr-btn.visible{display:block}
+.rep-hdr-btn:hover{background:var(--accent-light)}
+
+/* ── マイページ ── */
+.mypage-ov{position:fixed;inset:0;background:var(--paper);z-index:90;display:none;flex-direction:column}
+.mypage-ov.open{display:flex}
+.mypage-hdr{padding:14px 16px;border-bottom:1px solid var(--ink-faint);display:flex;align-items:center;gap:12px;background:var(--paper);flex-shrink:0}
+.mypage-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-mid);background:none;border:none;font-size:18px;padding:0}
+.mypage-hdr-info{flex:1}
+.mypage-ttl{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink);letter-spacing:.03em}
+.mypage-meta{font-size:11px;color:var(--ink-light);margin-top:1px}
+.mypage-body{flex:1;overflow-y:auto;padding:16px 16px 8px}
+.req-section{margin-bottom:24px}
+.req-sec-lbl{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-mid);margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--accent-light)}
+.req-item{display:flex;align-items:flex-start;gap:12px;padding:10px 4px;border-bottom:1px solid var(--ink-faint);cursor:pointer;transition:background .1s}
+.req-item:last-child{border-bottom:none}
+.req-item:active{background:var(--paper-warm)}
+.req-cb{width:20px;height:20px;border:2px solid var(--ink-faint);border-radius:4px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.req-item.checked .req-cb{background:var(--accent);border-color:var(--accent)}
+.req-item.checked .req-cb::after{content:'✓';font-size:11px;color:#fff;font-weight:700;line-height:1}
+.req-txt{font-size:13px;color:var(--ink-mid);line-height:1.75;flex:1}
+.req-item.checked .req-txt{color:var(--ink)}
+.mypage-footer{padding:12px 16px 20px;border-top:1px solid var(--ink-faint);background:var(--paper);flex-shrink:0}
+.mypage-footer-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:14px;font-size:14px;font-family:var(--sans);cursor:pointer;transition:background .15s;opacity:.4;pointer-events:none;letter-spacing:.03em}
+.mypage-footer-btn.active{opacity:1;pointer-events:auto}
+.mypage-footer-btn.active:hover{background:var(--accent-mid)}
+.mypage-footer-hint{font-size:11px;color:var(--ink-light);text-align:center;margin-top:7px}
+.req-empty{font-size:13px;color:var(--ink-light);font-style:italic;padding:16px 0}
+</style>
+</head>
+<body>
+
+<!-- ── ガイダンス画面 ── -->
+<div class="guide-ov" id="guide-ov">
+  <div class="guide-inner">
+    <div class="guide-logo">住まいの対話</div>
+    <div class="guide-logo-sub">SUMAI DIALOGUE</div>
+    <p class="guide-lead">家づくりを考え始めたとき、最初に必要なのは<br>「自分がどんな暮らしをしたいか」を整理する時間です。<br><br>専門家に会う前に、AIとの対話を通じて<br>あなた自身の言葉で気持ちを整理していきましょう。</p>
+    <div class="guide-items">
+      <div class="guide-item">
+        <div class="guide-icon">🎤</div>
+        <div class="guide-txt">
+          <strong>静かな場所で、音声入力がおすすめです</strong>
+          PCまたはスマートフォンの音声入力を使うと、より自然に話を引き出せます。
+        </div>
+      </div>
+<div class="guide-item">
+        <div class="guide-icon">🔄</div>
+        <div class="guide-txt">
+          <strong>いつでも中断・再開できます</strong>
+          途中で止めても、続きから始めることができます。急がず、自分のペースで。
+        </div>
+      </div>
+      <div class="guide-item">
+        <div class="guide-icon">💬</div>
+        <div class="guide-txt">
+          <strong>基本は自由に話すスタイルです</strong>
+          答え方がわからないときは選択肢が表示されることがあります。選ぶか、参考にして自分の言葉で話すか、どちらでも構いません。
+        </div>
+      </div>
+    </div>
+    <button class="guide-start" onclick="showNotice()">次へ — ご利用にあたっての注意</button>
+    <div class="guide-import">
+      保存した記録ファイルをお持ちの方は
+      <label class="guide-import-link">こちらから再開<input type="file" accept=".json,application/json" id="import-file" onchange="importSessionFile(this.files[0])" style="display:none"></label>
+    </div>
+  </div>
+</div>
+
+<!-- ── ご利用にあたっての注意ページ ── -->
+<div class="guide-ov" id="notice-ov">
+  <div class="guide-inner">
+    <div class="guide-logo">ご利用にあたっての注意</div>
+    <div class="guide-logo-sub">大切なことなので、始める前にお読みください</div>
+    <div class="guide-items">
+      <div class="guide-item">
+        <div class="guide-icon">🔒</div>
+        <div class="guide-txt">
+          <strong>対話の記録は、この端末のこのブラウザの中にだけ保存されます</strong>
+          サーバーには一切送信・保存されません。あなたの暮らしの情報を私たちが預かることはありません。その代わり、<u>別の端末や別のブラウザでは続きができません</u>。最後まで使いやすい端末と環境を決めてから始めてください。
+        </div>
+      </div>
+      <div class="guide-item">
+        <div class="guide-icon">📱</div>
+        <div class="guide-txt">
+          <strong>iPhone（Safari）をお使いの方へ — 「ホーム画面に追加」がおすすめです</strong>
+          Safariでは<u>7日以上このページを開かないと記録が自動的に消えることがあります</u>。共有ボタン（□に↑のマーク）から「ホーム画面に追加」を選ぶと、アプリのようにアイコンから使えるようになり、この制限もなくなります。<br>
+          ※追加した後は、必ずホーム画面のアイコンから開いて始めてください（Safariで進めた記録はアイコン側には引き継がれません）。
+        </div>
+      </div>
+      <div class="guide-item">
+        <div class="guide-icon">🚫</div>
+        <div class="guide-txt">
+          <strong>LINEやInstagramの中では開かないでください</strong>
+          アプリ内ブラウザでは記録が消えやすくなります。必ずSafariやChromeなどのブラウザ本体で開いてください。
+        </div>
+      </div>
+      <div class="guide-item">
+        <div class="guide-icon">💾</div>
+        <div class="guide-txt">
+          <strong>節目ごとに「記録を保存」を</strong>
+          画面上部の「記録を保存」ボタンで、対話の記録をファイルとして手元に残せます。万一記録が消えても、このファイルがあれば続きから再開できます。
+        </div>
+      </div>
+    </div>
+    <button class="guide-start" onclick="showPricing()">理解しました — 次へ（料金について）</button>
+  </div>
+</div>
+
+<!-- ── 料金説明ページ ── -->
+<div class="guide-ov" id="pricing-ov">
+  <div class="guide-inner">
+    <div class="guide-logo">料金について</div>
+    <div class="guide-logo-sub">仕組みを理解した上で始めていただきたいことです</div>
+    <p class="guide-lead" style="font-size:13px">「住まいの対話」は、対話のたびにAI（人工知能）の利用実費が発生するサービスです。そのため、はじめの体験は無料とし、そこから先へ進むときに段階的にお支払いいただく仕組みにしています。</p>
+    <div id="pricing-rows"></div>
+    <p class="pricing-note" id="pricing-note"></p>
+    <button class="guide-start" onclick="startSession()">料金の仕組みに同意して、はじめる</button>
+    <div class="guide-import">
+      <a href="legal.html" target="_blank" class="guide-import-link" style="text-decoration:underline">利用規約・プライバシーポリシー・返金ポリシー・特定商取引法に基づく表記</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── テスト決済画面（本番ではStripeチェックアウトに置き換え）── -->
+<div class="mock-pay-ov" id="mock-pay-ov">
+  <div class="mock-pay-card">
+    <div class="mock-pay-hd">お支払い <span class="mock-pay-test">テストプレビュー</span></div>
+    <div class="mock-pay-item" id="mock-pay-item">住まいの対話</div>
+    <div class="mock-pay-amt" id="mock-pay-amt">¥600</div>
+    <div class="mock-pay-methods">
+      <div class="mock-pay-m">💳 クレジットカード</div>
+      <div class="mock-pay-m"> Apple Pay / Google Pay</div>
+      <div class="mock-pay-m">📱 PayPay</div>
+    </div>
+    <div class="mock-pay-note">本番ではここでStripeの安全な決済画面が開きます。<br>テスト中は下のボタンで支払い完了の動きを確認できます。実際の請求は発生しません。</div>
+    <button class="mock-pay-btn" onclick="completeMockPayment()">テスト決済を完了する</button>
+    <button class="mock-pay-cancel" onclick="closeMockCheckout()">キャンセル</button>
+  </div>
+</div>
+
+<header class="hdr">
+  <div class="hdr-row">
+    <div class="logo">住まいの対話<span>SUMAI DIALOGUE</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="rewind-btn" id="rewind-btn" onclick="openRewind()">↩ 戻る</button>
+      <button class="rep-hdr-btn" id="export-btn" onclick="exportSession()">記録を保存</button>
+      <button class="rep-hdr-btn" id="rep-hdr-btn" onclick="openFullReportFromStorage()">要望書</button>
+      <div class="stage" id="stage">はじめに</div>
+    </div>
+  </div>
+  <nav class="prog" id="prog" aria-label="対話の進行状況">
+    <div class="prog-step now"><div class="prog-dot"></div><div class="prog-lbl">はじめに</div></div>
+    <div class="prog-step"><div class="prog-dot"></div><div class="prog-lbl">目的</div></div>
+    <div class="prog-step"><div class="prog-dot"></div><div class="prog-lbl">暮らし</div></div>
+    <div class="prog-step"><div class="prog-dot"></div><div class="prog-lbl">質感</div></div>
+    <div class="prog-step"><div class="prog-dot"></div><div class="prog-lbl">優先順位</div></div>
+    <div class="prog-step"><div class="prog-dot"></div><div class="prog-lbl">要望書</div></div>
+  </nav>
+</header>
+
+<main class="chat" id="chat">
+  <div class="typing" id="typing">
+    <div class="tav">間</div>
+    <div class="dots"><span></span><span></span><span></span></div>
+  </div>
+  <div id="btm"></div>
+</main>
+
+<div class="inp-wrap">
+  <div class="inp-inner">
+    <button class="mic-btn" id="mic-btn-fixed" onclick="toggleVoice()" title="音声入力">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <textarea class="inp" id="inp" placeholder="ここに入力してください..." rows="1"></textarea>
+    <button class="send" onclick="sendMsg()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="inp-hint">Enterで送信 · Shift+Enterで改行</div>
+</div>
+
+<div class="rep-ov" id="rep-ov">
+  <div class="rep-card">
+    <div class="rep-load" id="rep-load"><div class="rep-spin"></div>あなたの対話を整理しています...（1/2）</div>
+  </div>
+</div>
+
+<!-- ── 要望書フルビュー ── -->
+<div class="fullrep-ov" id="fullrep-ov">
+  <div class="fullrep-hdr no-print">
+    <button class="fullrep-back" onclick="closeFullReport()">← 戻る</button>
+    <div class="fullrep-nav-ttl">住まい作り要望書</div>
+    <button class="fullrep-print-btn" onclick="window.print()">印刷 / PDF保存</button>
+  </div>
+  <div class="fullrep-body">
+    <div class="fullrep-page" id="fullrep-page"></div>
+  </div>
+</div>
+
+<!-- ── 巻き戻しモーダル ── -->
+<div class="rewind-ov" id="rewind-ov">
+  <div class="rewind-hdr">
+    <button class="rewind-back" onclick="closeRewind()">←</button>
+    <div class="rewind-ttl">会話を戻す</div>
+  </div>
+  <div class="rewind-desc">戻りたい時点のAIのメッセージを選んでください。その後の会話は削除されます。</div>
+  <div class="rewind-body" id="rewind-body"></div>
+</div>
+
+<!-- ── マイページ ── -->
+<div class="mypage-ov" id="mypage-ov">
+  <div class="mypage-hdr">
+    <button class="mypage-back" onclick="closeMypage()">←</button>
+    <div class="mypage-hdr-info">
+      <div class="mypage-ttl">あなたの要望書</div>
+      <div class="mypage-meta" id="mypage-meta"></div>
+    </div>
+  </div>
+  <div class="mypage-body" id="mypage-body"></div>
+  <div class="mypage-footer">
+    <button class="mypage-footer-btn" id="mypage-footer-btn" onclick="startRevisionChat()">項目を選んで修正できます</button>
+    <div class="mypage-footer-hint" id="mypage-footer-hint">気になる部分をタップして選んでください</div>
+  </div>
+</div>
+
+<script>
+// ── API接続設定 ──
+// PROXY_URL に Cloudflare Worker URL を設定するとプロキシ経由で動作（APIキー不要）。
+// 空のままにするとブラウザから直接 Anthropic API を呼び出す（APIキー入力が必要）。
+const PROXY_URL = 'https://mirai-proxy.hands-a-design.workers.dev';
+
+const STORAGE_KEY = 'sumai_anthropic_key';
+
+function getApiKey() {
+  return localStorage.getItem(STORAGE_KEY) || '';
+}
+
+function apiEndpoint() {
+  return PROXY_URL || 'https://api.anthropic.com/v1/messages';
+}
+
+function apiHeaders() {
+  const h = { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' };
+  if (!PROXY_URL) {
+    h['x-api-key'] = getApiKey();
+    h['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
+  return h;
+}
+
+function showApiKeyModal() {
+  const modal = document.createElement('div');
+  modal.className = 'apikey-modal';
+  modal.id = 'apikey-modal';
+  modal.innerHTML = `
+    <div class="apikey-card">
+      <div class="apikey-ttl">APIキーを設定してください</div>
+      <div class="apikey-desc">
+        このデモはAnthropic APIを直接呼び出します。<br>
+        APIキーはこのブラウザのみに保存され、外部には送信されません。
+      </div>
+      <input type="password" class="apikey-inp" id="apikey-inp" placeholder="sk-ant-..." />
+      <button class="apikey-btn" onclick="saveApiKey()">設定して始める</button>
+      <div class="apikey-note">
+        ※ APIキーはlocalStorageに保存されます。<br>
+        ※ 本番環境ではサーバーサイドに移行します。
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('apikey-inp').focus();
+  document.getElementById('apikey-inp').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveApiKey();
+  });
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apikey-inp').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    alert('APIキーは sk-ant- で始まる文字列です。');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, val);
+  document.getElementById('apikey-modal').remove();
+  const session = loadSession();
+  if (session?.completedSections?.length > 0) {
+    showResumeCard(session);
+  } else {
+    showGuidance();
+  }
+}
+
+function showGuidance() {
+  const ov = document.getElementById('guide-ov');
+  ov.classList.add('show');
+}
+
+function showNotice() {
+  document.getElementById('guide-ov').classList.remove('show');
+  document.getElementById('notice-ov').classList.add('show');
+}
+
+// ── 課金構造（ここを書き換えるだけで料金ページの表示が変わる）──
+// after: そのセクション保存の直後が支払いポイント（Stripe導入時にここを参照する）
+const PRICING = {
+  live: false,  // 決済導入前は false（説明ページに「まだ請求は発生しない」注記が出る）
+  stages: [
+    { steps: 'STEP 0〜1', label: 'はじめに・目的の整理', desc: '家族構成と、住まいづくりの目的をAIとの対話で整理します。ここまでのまとめもお渡しします。', price: 0,    after: null },
+    { steps: 'STEP 2〜3', label: '暮らしと質感の対話',   desc: '一日の暮らしのトレースと、空間の質感・好みの整理。対話の中心となる部分です。',       price: 600,  after: 'STEP0-1' },
+    { steps: 'STEP 4',    label: '優先順位の整理と要望書', desc: 'プランニング判断の整理と、設計者に渡せる「住まい作り要望書」の作成。',            price: 1200, after: 'STEP3' },
+  ],
+};
+
+function buildPricingPage() {
+  const rows = document.getElementById('pricing-rows');
+  rows.innerHTML = PRICING.stages.map(s => `
+    <div class="price-row">
+      <div class="price-row-hd">
+        <span class="price-step">${s.steps}</span>
+        <span class="price-amt">${s.price === 0 ? '無料' : '¥' + s.price.toLocaleString()}</span>
+      </div>
+      <div class="price-row-ttl">${s.label}</div>
+      <div class="price-row-desc">${s.desc}</div>
+    </div>`).join('');
+  const total = PRICING.stages.reduce((a, s) => a + s.price, 0);
+  let note = `すべて進んだ場合の合計は ¥${total.toLocaleString()} です。お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。`;
+  if (!PRICING.live) note += '<br>※現在はテスト公開中のため、実際のお支払いはまだ発生しません。';
+  document.getElementById('pricing-note').innerHTML = note;
+}
+
+function showPricing() {
+  buildPricingPage();
+  document.getElementById('notice-ov').classList.remove('show');
+  document.getElementById('pricing-ov').classList.add('show');
+}
+
+// ── 支払い状態（Stripe導入後もこのキーを使う）──
+const PAY_KEY = 'mirai-no-ie-paid-v08';
+function getPaid() {
+  try { return JSON.parse(localStorage.getItem(PAY_KEY)) || {}; } catch(e) { return {}; }
+}
+function setPaid(afterLabel) {
+  const p = getPaid();
+  p[afterLabel] = new Date().toISOString();
+  try { localStorage.setItem(PAY_KEY, JSON.stringify(p)); } catch(e) {}
+}
+
+// セクション保存後に課金ポイントなら支払いゲートを出す。出した場合 true を返す
+function maybeAddPaywall(label) {
+  const stage = PRICING.stages.find(s => s.after === label && s.price > 0);
+  if (!stage || getPaid()[label]) return false;
+  const card = document.createElement('div');
+  card.className = 'paygate';
+  card.id = 'paygate-' + label;
+  card.innerHTML = `
+    <div class="paygate-badge">ここから先は有料です</div>
+    <div class="paygate-ttl">${stage.label}</div>
+    <div class="paygate-desc">${stage.desc}</div>
+    <div class="paygate-price">¥${stage.price.toLocaleString()}</div>
+    <button class="paygate-btn" onclick="openMockCheckout('${label}')">支払って進む</button>
+    ${PRICING.live ? '' : '<div class="paygate-note">※テスト公開中のため、実際の請求は発生しません</div>'}
+  `;
+  chatEl.insertBefore(card, typingEl);
+  scrollBtm();
+  return true;
+}
+
+// テスト用の決済画面（本番ではStripeのチェックアウトに置き換える）
+function openMockCheckout(label) {
+  const stage = PRICING.stages.find(s => s.after === label);
+  document.getElementById('mock-pay-item').textContent = `住まいの対話 — ${stage.label}`;
+  document.getElementById('mock-pay-amt').textContent = '¥' + stage.price.toLocaleString();
+  document.getElementById('mock-pay-ov').classList.add('open');
+  window._payLabel = label;
+}
+function closeMockCheckout() {
+  document.getElementById('mock-pay-ov').classList.remove('open');
+}
+function completeMockPayment() {
+  const label = window._payLabel;
+  if (!label) return;
+  setPaid(label);
+  sendEvent('pay-' + label);
+  closeMockCheckout();
+  document.getElementById('paygate-' + label)?.remove();
+  const el = document.createElement('div');
+  el.className = 'save-indicator';
+  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">お支払いが完了しました${PRICING.live ? '' : '（テスト）'}</span><span class="save-hint"> — 続きに進めます</span>`;
+  chatEl.insertBefore(el, typingEl);
+  const nextConfig = STEP_NEXT_CONFIGS[label];
+  if (nextConfig) addStepNextCard(nextConfig);
+  scrollBtm();
+}
+
+// ブラウザに「このサイトのデータを消さないで」と要請する（保険・拒否されても害なし）
+function requestPersist() {
+  try { navigator.storage?.persist?.(); } catch(e) {}
+}
+
+// 匿名の到達カウント。送るのはイベント名だけ（対話内容・個人情報は一切送らない）
+function sendEvent(name) {
+  if (!PROXY_URL) return;
+  try {
+    fetch(PROXY_URL + '/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ e: name }),
+      keepalive: true
+    }).catch(() => {});
+  } catch(e) {}
+}
+
+function startSession() {
+  try { localStorage.setItem('mirai-no-ie-consent', JSON.stringify({ agreedAt: new Date().toISOString(), pricing: PRICING.stages.map(s => s.price) })); } catch(e) {}
+  const ov = document.getElementById('pricing-ov');
+  ov.classList.add('hidden');
+  setTimeout(() => { ov.classList.remove('show'); }, 500);
+  requestPersist();
+  sendEvent('start');
+  start();
+}
+
+// SYSTEM_PROMPT はサーバー側（proxy-worker.js / Cloudflare Worker）に移設した。
+// 知財保護のためクライアントには置かない。プロンプト変更時はWorkerを再デプロイする。
+
+
+let history = [];
+let reportData = '';
+let isGenerating = false;
+let recognition = null;
+let isListening = false;
+let voiceBtn = null;
+
+const chatEl = document.getElementById('chat');
+const typingEl = document.getElementById('typing');
+const inpEl = document.getElementById('inp');
+const stageEl = document.getElementById('stage');
+
+function scrollBtm() {
+  requestAnimationFrame(() => document.getElementById('btm').scrollIntoView({ behavior: 'smooth' }));
+}
+function stageToStep(t) {
+  if (!t) return 0;
+  if (t.includes('要望書')) return 5;
+  if (t.includes('プランニング')) return 4;
+  if (t.includes('質感')) return 3;
+  if (t.includes('一日') || t.includes('暮らし')) return 2;
+  if (t.includes('目的')) return 1;
+  return 0; // はじめに・家族構成
+}
+function updateProgress(t) {
+  const idx = stageToStep(t);
+  document.querySelectorAll('#prog .prog-step').forEach((el, i) => {
+    el.classList.toggle('done', i < idx || (idx === 5 && i === 5));
+    el.classList.toggle('now', i === idx && idx < 5);
+  });
+}
+function setStage(t) { stageEl.textContent = t; updateProgress(t); }
+function showTyping() { typingEl.classList.add('on'); scrollBtm(); }
+function hideTyping() { typingEl.classList.remove('on'); }
+
+function addMsg(role, text) {
+  const g = document.createElement('div');
+  g.className = 'mg';
+  const m = document.createElement('div');
+  m.className = `msg ${role === 'ai' ? '' : 'usr'}`;
+  const a = document.createElement('div');
+  a.className = `av ${role === 'ai' ? 'ai' : 'usr'}`;
+  a.textContent = role === 'ai' ? '間' : '私';
+  const b = document.createElement('div');
+  b.className = `bbl ${role === 'ai' ? 'ai' : 'usr'}`;
+  b.innerHTML = text.replace(/\n/g, '<br>');
+  m.appendChild(a); m.appendChild(b); g.appendChild(m);
+  chatEl.insertBefore(g, typingEl);
+  scrollBtm();
+}
+
+function addChoiceBlock(choices) {
+  const block = document.createElement('div');
+  block.className = 'choice-block';
+
+  const list = document.createElement('div');
+  list.className = 'choice-list';
+
+  let selectedIndex = -1;
+
+  choices.forEach((c, i) => {
+    const item = document.createElement('div');
+    item.className = 'choice-item';
+    item.innerHTML = `<div class="choice-radio"></div><div class="choice-label">${c}</div>`;
+    item.onclick = () => {
+      list.querySelectorAll('.choice-item').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      selectedIndex = i;
+      confirmBtn.classList.add('active');
+    };
+    list.appendChild(item);
+  });
+
+  const footer = document.createElement('div');
+  footer.className = 'choice-footer';
+  const hint = document.createElement('div');
+  hint.className = 'choice-hint';
+  hint.textContent = '一つ選んでから確定してください';
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'confirm-btn';
+  confirmBtn.textContent = '確定する →';
+  confirmBtn.onclick = () => {
+    if (selectedIndex < 0) return;
+    const chosen = choices[selectedIndex];
+    block.remove();
+    if (chosen === '自分の言葉で話す') {
+      inpEl.focus();
+      inpEl.placeholder = '自由に話してみてください...';
+      return;
+    }
+    inpEl.value = chosen;
+    sendMsg();
+  };
+  footer.appendChild(hint);
+  footer.appendChild(confirmBtn);
+
+  block.appendChild(list);
+  block.appendChild(footer);
+  chatEl.insertBefore(block, typingEl);
+  scrollBtm();
+}
+
+function addReflectionCard() {
+  const card = document.createElement('div');
+  card.className = 'rc';
+  card.innerHTML = `
+    <div class="rc-eye">みらいの家を考えはじめる</div>
+    <div class="rc-q"><div class="rc-dot"></div><div>今の制約はいったん外して、5年後・10年後の自分と家族を自由に思い描いてみてください。</div></div>
+    <div class="rc-q"><div class="rc-dot"></div><div>あなたはどんな人になっているでしょうか。家族はどうなっているでしょうか。あるいはどうなっていたいでしょうか。</div></div>
+    <div class="rc-foot">答えに正解はありません。一緒にゆっくり整理していきましょう。</div>
+    <button class="rc-next" onclick="reflectionNext(this)">考えを整理できたら — 次に進む</button>
+  `;
+  chatEl.insertBefore(card, typingEl);
+  scrollBtm();
+}
+
+function reflectionNext(btn) {
+  btn.disabled = true;
+  inpEl.value = '準備ができました。次に進みましょう。';
+  sendMsg();
+}
+
+// ── STEP 0-1 完了時の成果物（ここまでのまとめ）──
+function addMilestoneCard() {
+  const card = document.createElement('div');
+  card.className = 'vb';
+  card.innerHTML = `<div style="font-size:20px">📄</div>
+    <div class="vb-txt"><strong>ここまでの整理を成果物にできます</strong>目的の整理を「ここまでのまとめ」として表示し、ファイルとして手元に残せます。</div>
+    <button class="vb-btn" onclick="generateMilestone(this)">まとめを作成</button>`;
+  chatEl.insertBefore(card, typingEl);
+  scrollBtm();
+}
+
+async function generateMilestone(btn) {
+  btn.disabled = true;
+  btn.textContent = '作成中...';
+  try {
+    const prompt = `ここまでの対話を「ここまでのまとめ」として簡潔に整理してください。
+- 見出しは「■ 家族と暮らし」「■ 住まいづくりの目的」「■ みらいの暮らしのイメージ」の3つ
+- 各見出しの下に箇条書き（・）で3〜6項目、本人の言葉をできるだけ活かす
+- マークダウンの**や##は使わない。テキストのみ`;
+    const txt = await claudeAPI([...history, { role: 'user', content: prompt }], 1500);
+    addMsg('ai', txt);
+    const d = new Date();
+    const name = `住まいの対話_ここまでのまとめ_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.txt`;
+    const blob = new Blob([`住まいの対話 — ここまでのまとめ\n${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日\n\n${txt}`], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    btn.textContent = 'まとめを保存しました ✓';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'まとめを作成';
+    alert('まとめの作成に失敗しました。もう一度お試しください。');
+  }
+}
+
+function addVoiceBanner() {
+  const b = document.createElement('div');
+  b.className = 'vb';
+  b.innerHTML = `<div style="font-size:20px">🎤</div>
+    <div class="vb-txt"><strong>音声入力が使えます</strong>話しながら考えを整理する方が自然です。</div>
+    <button class="vb-btn" id="vbtn" onclick="toggleVoice()">音声で話す</button>`;
+  chatEl.insertBefore(b, typingEl);
+  voiceBtn = document.getElementById('vbtn');
+  scrollBtm();
+}
+
+function parseChoices(text) {
+  const ms = [...text.matchAll(/【選択肢[:：]\s*([^】]+)】/g)];
+  if (!ms.length) return [];
+  return ms[ms.length - 1][1].split('/').map(s => s.trim()).filter(Boolean);
+}
+
+function cleanText(text) {
+  return text
+    .replace(/【選択肢[:：][^】]*】/g, '')
+    .replace(/【内省カード】/g, '')
+    .replace(/【要望書生成】/g, '')
+    .replace(/【ステージ[:：][^】]*】/g, '')
+    .replace(/【セクション保存[:：][^】]*】/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function addSaveIndicator(label) {
+  const el = document.createElement('div');
+  el.className = 'save-ind';
+  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">${label} を保存しました</span><span class="save-hint"> — 修正・追加はいつでも話しかけてください</span>`;
+  chatEl.insertBefore(el, typingEl);
+  scrollBtm();
+}
+
+function addStepNextCard(config) {
+  const card = document.createElement('div');
+  card.className = 'step-next-card';
+  let btnsHtml = `<button class="step-next-btn-p" onclick="sendNextStep(this,'${config.primaryMsg}')">${config.primaryLabel}</button>`;
+  if (config.secondaryLabel) {
+    btnsHtml += `<button class="step-next-btn-s" onclick="sendNextStep(this,'${config.secondaryMsg}')">${config.secondaryLabel}</button>`;
+  }
+  card.innerHTML = `
+    <div class="step-next-label">${config.label}</div>
+    <div class="step-next-title">${config.title}</div>
+    <div class="step-next-btns">${btnsHtml}</div>
+  `;
+  chatEl.insertBefore(card, typingEl);
+  scrollBtm();
+}
+
+function sendNextStep(btn, msg) {
+  btn.closest('.step-next-card').querySelectorAll('button').forEach(b => { b.disabled = true; });
+  btn.closest('.step-next-card').style.opacity = '0.5';
+  inpEl.value = msg;
+  sendMsg();
+}
+
+// ── マルチセッション管理 ──
+const SESSION_KEY = 'mirai-no-ie-v05';
+const SECTION_LABELS = {
+  'STEP0-1': 'STEP 0+1 — 家族構成・住まいづくりの目的',
+  'STEP2A':  'STEP 2A — 明るい時間（朝〜夕方）',
+  'STEP2B':  'STEP 2B — 夜の時間（夕方〜就寝）',
+  'STEP3':   'STEP 3 — 空間の質感・インテリアの好み',
+};
+
+const STEP_NEXT_CONFIGS = {
+  'STEP0-1': {
+    label: 'NEXT → STEP 2',
+    title: '次は暮らしのタイムテーブルを振り返ります。できるだけ1週間ほど実際の暮らしをメモしてから始めると、より深い対話ができます。',
+    primaryLabel: 'STEP 2 を始める',
+    primaryMsg: '準備ができました。STEP 2 を始めましょう。',
+    secondaryLabel: null,
+  },
+  'STEP2B': {
+    label: 'NEXT → STEP 3',
+    title: '次はインテリアや空間の雰囲気の好みを探ります。好きな空間の写真やPinterestのSaveなどがあれば準備してください。',
+    primaryLabel: 'このまま STEP 3 へ進む',
+    primaryMsg: '続けます。STEP 3 へ進みましょう。',
+    secondaryLabel: '今日はここまでにする',
+    secondaryMsg: '今日はここまでにします。',
+  },
+  'STEP3': {
+    label: 'NEXT → STEP 4',
+    title: '次は住まいのプランニングに関わる価値観を整理します。',
+    primaryLabel: 'このまま STEP 4 へ進む',
+    primaryMsg: '続けます。STEP 4 へ進みましょう。',
+    secondaryLabel: '今日はここまでにする',
+    secondaryMsg: '今日はここまでにします。',
+  },
+};
+
+function saveSession(label) {
+  try {
+    const existing = loadSession() || {};
+    const completedSections = existing.completedSections || [];
+    if (label && !completedSections.includes(label)) completedSections.push(label);
+    const session = {
+      version: '0.5',
+      savedAt: new Date().toISOString(),
+      currentStage: stageEl.textContent,
+      completedSections,
+      history: JSON.parse(JSON.stringify(history)),
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch(e) { console.warn('セッション保存エラー', e); }
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s.version || !Array.isArray(s.history)) return null;
+    return s;
+  } catch(e) { return null; }
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+// ── 記録ファイルの保存・読み込み（端末内バックアップ）──
+function exportSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) { alert('保存できる記録がまだありません。'); return; }
+  let report = null;
+  try { report = JSON.parse(localStorage.getItem(REPORT_KEY)); } catch(e) {}
+  const bundle = {
+    app: 'mirai-no-ie',
+    exportedAt: new Date().toISOString(),
+    session: JSON.parse(raw),
+    report,
+    qa: localStorage.getItem(QA_KEY) || null,
+  };
+  const d = new Date();
+  const name = `住まいの対話_記録_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importSessionFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const b = JSON.parse(reader.result);
+      if (b.app !== 'mirai-no-ie' || !Array.isArray(b.session?.history)) throw new Error('invalid');
+      localStorage.setItem(SESSION_KEY, JSON.stringify(b.session));
+      if (b.report) localStorage.setItem(REPORT_KEY, JSON.stringify(b.report));
+      if (b.qa) localStorage.setItem(QA_KEY, b.qa);
+      location.reload();
+    } catch(e) {
+      alert('記録ファイルを読み込めませんでした。「住まいの対話」で保存したファイルかご確認ください。');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function formatSavedDate(iso) {
+  try {
+    const d = new Date(iso);
+    const m = d.getMonth() + 1, day = d.getDate();
+    const h = d.getHours(), min = String(d.getMinutes()).padStart(2, '0');
+    return `${m}月${day}日 ${h}:${min}`;
+  } catch(e) { return ''; }
+}
+
+function showResumeCard(session) {
+  const secHtml = session.completedSections
+    .map(s => `<div class="rs-sec"><span class="rs-ck">✓</span>${SECTION_LABELS[s] || s}</div>`)
+    .join('');
+  const card = document.createElement('div');
+  card.className = 'resume-card';
+  card.id = 'resume-card';
+  card.innerHTML = `
+    <div class="rs-hd">前回の続きから再開できます</div>
+    <div class="rs-meta">最後に保存：${formatSavedDate(session.savedAt)} &nbsp;／&nbsp; ${session.currentStage}</div>
+    <div class="rs-secs">${secHtml}</div>
+    <div class="rs-btns">
+      <button class="rs-btn rs-btn-p" onclick="resumeSession()">続きから再開する</button>
+      <button class="rs-btn rs-btn-s" onclick="confirmClear()">最初からやり直す</button>
+    </div>
+  `;
+  chatEl.insertBefore(card, typingEl);
+  scrollBtm();
+  window._pendingSession = session;
+}
+
+function confirmClear() {
+  if (confirm('前回の対話記録を削除して、最初からやり直しますか？')) {
+    clearSession();
+    document.getElementById('resume-card')?.remove();
+    window._pendingSession = null;
+    showGuidance();
+  }
+}
+
+function resumeSession() {
+  const session = window._pendingSession;
+  if (!session) return;
+  history = session.history;
+  setStage(session.currentStage);
+  document.getElementById('export-btn').classList.add('visible');
+  requestPersist();
+  sendEvent('resume');
+  document.getElementById('resume-card')?.remove();
+  addVoiceBanner();
+  const sep = document.createElement('div');
+  sep.className = 'rs-sep';
+  sep.textContent = '— 前回のセッションを再開しました —';
+  chatEl.insertBefore(sep, typingEl);
+  const lastAI = [...history].reverse().find(m => m.role === 'assistant');
+  if (lastAI) addMsg('ai', cleanText(lastAI.content));
+  const doneSections = session.completedSections || [];
+  if (doneSections.length) maybeAddPaywall(doneSections[doneSections.length - 1]);
+  scrollBtm();
+}
+
+// 最後のメッセージにキャッシュ地点を置く：次回の呼び出しで前回までの
+// 全履歴（システムプロンプト含む）がキャッシュ読取（通常の1/10価格）になる
+// ttl:'1h' = ユーザーが考え込んでも1時間以内ならキャッシュが生きる（書込単価は2倍だが読取は同じ）
+function withCache(messages) {
+  return messages.map((m, i) =>
+    i === messages.length - 1
+      ? { role: m.role, content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral', ttl: '1h' } }] }
+      : m
+  );
+}
+
+async function callClaude(userMsg) {
+  history.push({ role: 'user', content: userMsg });
+  const res = await fetch(apiEndpoint(), {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      messages: withCache(history)
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const txt = data.content?.[0]?.text || 'うまく受け取れませんでした。もう一度お試しください。';
+  history.push({ role: 'assistant', content: txt });
+  return txt;
+}
+
+// ── 自動ブレーキ（暴走・想定外の連投からコストを守る）──
+const BRAKES = { maxUserTurns: 150, warnUserTurns: 110, minSendIntervalMs: 1500, maxMsgChars: 2000 };
+let lastSendAt = 0;
+let brakeWarned = false;
+
+async function sendMsg() {
+  if (isGenerating) return;
+  const text = inpEl.value.trim();
+  if (!text) return;
+  const now = Date.now();
+  if (now - lastSendAt < BRAKES.minSendIntervalMs) return;
+  if (text.length > BRAKES.maxMsgChars) {
+    alert(`一度に送れるのは${BRAKES.maxMsgChars}文字までです。いくつかに分けて送ってください。`);
+    return;
+  }
+  const userTurns = history.filter(m => m.role === 'user').length;
+  if (userTurns >= BRAKES.maxUserTurns) {
+    alert('対話が想定の上限に達しました。「記録を保存」で控えを残した上で、要望書の作成に進んでください。');
+    return;
+  }
+  if (userTurns >= BRAKES.warnUserTurns && !brakeWarned) {
+    brakeWarned = true;
+    addMsg('ai', '（ご案内）対話がかなり長くなってきました。このまま続けられますが、区切りの良いところで要望書の作成に進むことをおすすめします。');
+  }
+  lastSendAt = now;
+  inpEl.value = '';
+  inpEl.style.height = 'auto';
+  inpEl.placeholder = 'ここに入力してください...';
+  isGenerating = true;
+
+  addMsg('user', text);
+  showTyping();
+
+  try {
+    const aiText = await callClaude(text);
+    hideTyping();
+    const clean = cleanText(aiText);
+
+    const stageMatch = aiText.match(/【ステージ[:：]\s*([^】]+)】/);
+    if (stageMatch) setStage(stageMatch[1].trim());
+
+    if (aiText.includes('【要望書生成】')) {
+      addMsg('ai', clean);
+      await generateReport();
+    } else if (aiText.includes('【内省カード】')) {
+      addMsg('ai', clean);
+      addReflectionCard();
+      saveSession();
+      document.getElementById('rewind-btn').classList.add('visible');
+      document.getElementById('export-btn').classList.add('visible');
+    } else {
+      addMsg('ai', clean);
+      const saveMatch = aiText.match(/【セクション保存[:：]\s*([^】]+)】/);
+      if (saveMatch) {
+        const label = saveMatch[1].trim();
+        addSaveIndicator(label);
+        saveSession(label);
+        sendEvent(label);
+        if (label === 'STEP0-1') addMilestoneCard();
+        const gated = maybeAddPaywall(label);
+        const nextConfig = STEP_NEXT_CONFIGS[label];
+        if (!gated && nextConfig) addStepNextCard(nextConfig);
+      } else {
+        saveSession();
+      }
+      document.getElementById('rewind-btn').classList.add('visible');
+      document.getElementById('export-btn').classList.add('visible');
+      const choices = parseChoices(aiText);
+      if (choices.length) addChoiceBlock(choices);
+    }
+  } catch(e) {
+    hideTyping();
+    addMsg('ai', `エラーが発生しました。\n${e.message}\nもう一度お試しください。`);
+  }
+  isGenerating = false;
+}
+
+function initRecognition() {
+  if (recognition) return recognition;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'ja-JP';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  const fixedMic = document.getElementById('mic-btn-fixed');
+  let voiceBase = '';   // 録音開始時に入力欄にあったテキスト
+  let voiceFinal = '';  // 確定済みセンテンスの蓄積
+  recognition.onstart = () => {
+    isListening = true;
+    voiceBase = inpEl.value;
+    voiceFinal = '';
+    inpEl.classList.add('listening');
+    inpEl.placeholder = '🔴 録音中... 話してください';
+    if (voiceBtn) { voiceBtn.textContent = '■ 停止'; voiceBtn.classList.add('rec'); }
+    if (fixedMic) fixedMic.classList.add('rec');
+  };
+  recognition.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const tr = e.results[i][0].transcript;
+      if (e.results[i].isFinal) voiceFinal += tr;
+      else interim += tr;
+    }
+    inpEl.value = voiceBase + voiceFinal + interim;
+  };
+  recognition.onend = () => {
+    isListening = false;
+    inpEl.classList.remove('listening');
+    inpEl.placeholder = 'ここに入力してください...';
+    if (voiceBtn) { voiceBtn.textContent = '音声で話す'; voiceBtn.classList.remove('rec'); }
+    if (fixedMic) fixedMic.classList.remove('rec');
+    if (inpEl.value.trim()) sendMsg();
+  };
+  recognition.onerror = () => {
+    isListening = false;
+    inpEl.classList.remove('listening');
+    if (voiceBtn) { voiceBtn.textContent = '音声で話す'; voiceBtn.classList.remove('rec'); }
+    if (fixedMic) fixedMic.classList.remove('rec');
+  };
+  return recognition;
+}
+
+function toggleVoice() {
+  if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+    alert('音声入力はChrome / Edge で使えます。');
+    return;
+  }
+  if (isListening) { recognition?.stop(); return; }
+  initRecognition().start();
+}
+
+// ── 要望書 JSON 管理 ──
+const REPORT_KEY = 'mirai-no-ie-report-v05';
+let reportJson = null;
+let selectedItems = new Set();
+
+function saveReport(json) {
+  try { localStorage.setItem(REPORT_KEY, JSON.stringify(json)); } catch(e) {}
+}
+function loadReport() {
+  try { const r = localStorage.getItem(REPORT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+function showRepHdrBtn() {
+  document.getElementById('rep-hdr-btn').classList.add('visible');
+}
+
+function openMypage() {
+  const json = loadReport();
+  if (!json) return;
+  reportJson = json;
+  selectedItems.clear();
+  renderMypage(json);
+  document.getElementById('mypage-ov').classList.add('open');
+}
+function closeMypage() {
+  document.getElementById('mypage-ov').classList.remove('open');
+}
+
+// ── 巻き戻し ──
+function openRewind() {
+  const aiTurns = [];
+  history.forEach((msg, idx) => {
+    if (msg.role === 'assistant') aiTurns.push({ idx, content: msg.content });
+  });
+  if (aiTurns.length < 2) return;
+
+  const body = document.getElementById('rewind-body');
+  body.innerHTML = '';
+  let turnNum = 0;
+  [...aiTurns].reverse().forEach(({ idx, content }) => {
+    turnNum++;
+    const clean = cleanText(content);
+    const stageM = content.match(/【ステージ[:：]\s*([^】]+)】/);
+    const stage = stageM ? stageM[1].trim() : 'はじめに';
+    const item = document.createElement('div');
+    item.className = 'rewind-item';
+    item.innerHTML = `
+      <div class="rewind-item-stage">${stage}</div>
+      <div class="rewind-item-text">${clean.replace(/\n/g,' ')}</div>
+      <div class="rewind-item-num">${aiTurns.length - turnNum + 1} 番目のメッセージ</div>
+    `;
+    item.onclick = () => {
+      if (confirm('この時点まで会話を戻しますか？\nこれ以降の会話は削除されます。')) rewindTo(idx);
+    };
+    body.appendChild(item);
+  });
+  document.getElementById('rewind-ov').classList.add('open');
+}
+
+function closeRewind() {
+  document.getElementById('rewind-ov').classList.remove('open');
+}
+
+function rewindTo(histIdx) {
+  const sliced = history.slice(0, histIdx + 1);
+
+  // チャット内のメッセージ要素をすべて削除
+  chatEl.querySelectorAll('.mg,.rc,.choice-block,.step-next-card,.save-ind,.vb,.resume-card,.rs-sep').forEach(el => el.remove());
+
+  // 選択した時点まで再描画
+  sliced.forEach(msg => {
+    const text = msg.role === 'assistant' ? cleanText(msg.content) : msg.content;
+    addMsg(msg.role === 'assistant' ? 'ai' : 'user', text);
+  });
+
+  // ステージを復元
+  const lastAI = [...sliced].reverse().find(m => m.role === 'assistant');
+  if (lastAI) {
+    const m = lastAI.content.match(/【ステージ[:：]\s*([^】]+)】/);
+    if (m) setStage(m[1].trim());
+  }
+
+  history = JSON.parse(JSON.stringify(sliced));
+  saveSession();
+  closeRewind();
+  scrollBtm();
+}
+
+function renderMypage(json) {
+  const body = document.getElementById('mypage-body');
+  const meta = document.getElementById('mypage-meta');
+  try {
+    const d = new Date(json.generatedAt);
+    meta.textContent = `${d.getMonth()+1}月${d.getDate()}日 生成`;
+  } catch(e) {}
+  body.innerHTML = '';
+  (json.sections || []).forEach(sec => {
+    if (!sec.items || sec.items.length === 0) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'req-section';
+    const lbl = document.createElement('div');
+    lbl.className = 'req-sec-lbl';
+    lbl.textContent = sec.label;
+    wrap.appendChild(lbl);
+    sec.items.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'req-item';
+      const key = `${sec.id}:${idx}`;
+      if (selectedItems.has(key)) row.classList.add('checked');
+      row.innerHTML = `<div class="req-cb"></div><div class="req-txt">${item}</div>`;
+      row.onclick = () => {
+        if (selectedItems.has(key)) { selectedItems.delete(key); row.classList.remove('checked'); }
+        else { selectedItems.add(key); row.classList.add('checked'); }
+        updateMypageFooter();
+      };
+      wrap.appendChild(row);
+    });
+    body.appendChild(wrap);
+  });
+  updateMypageFooter();
+}
+
+function updateMypageFooter() {
+  const btn = document.getElementById('mypage-footer-btn');
+  const hint = document.getElementById('mypage-footer-hint');
+  const n = selectedItems.size;
+  if (n === 0) {
+    btn.classList.remove('active');
+    btn.textContent = '項目を選んで修正できます';
+    hint.textContent = '気になる部分をタップして選んでください';
+  } else {
+    btn.classList.add('active');
+    btn.textContent = `${n}件の項目について話す`;
+    hint.textContent = '選んだ内容についてAIと対話して修正できます';
+  }
+}
+
+function startRevisionChat() {
+  if (selectedItems.size === 0 || !reportJson) return;
+  const lines = [];
+  selectedItems.forEach(key => {
+    const [secId, idx] = key.split(':');
+    const sec = (reportJson.sections || []).find(s => s.id === secId);
+    if (sec) lines.push(`・${sec.label}：${sec.items[parseInt(idx)]}`);
+  });
+  closeMypage();
+  inpEl.value = `要望書の以下の部分を見直したいです。確認しながら修正・追加してください。\n\n${lines.join('\n')}`;
+  sendMsg();
+}
+
+const QA_KEY = 'mirai-no-ie-qa-v06';
+
+async function claudeAPI(messages, maxTokens = 1000) {
+  const res = await fetch(apiEndpoint(), {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: withCache(messages) })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.[0]?.text || '';
+}
+
+async function generateReport() {
+  const loadEl = document.getElementById('rep-load');
+  document.getElementById('rep-ov').classList.add('open');
+
+  // 会話スナップショット（Q&A生成用：JSONプロンプト追加前）
+  const conversationSnap = JSON.parse(JSON.stringify(history));
+
+  // ── Step 1: JSON 要約生成 ──
+  loadEl.innerHTML = '<div class="rep-spin"></div>対話の内容を整理しています...（1/2）';
+  const jsonPrompt = `これまでの対話から「生活要望書」をJSON形式で作成してください。
+
+以下のJSON構造のみを出力してください。前後の説明文・マークダウン・コードブロック（\`\`\`）は不要です。JSONだけを返してください。
+
+{
+  "generatedAt": "${new Date().toISOString()}",
+  "sections": [
+    { "id": "purpose",      "label": "住まいづくりの目的",              "items": [] },
+    { "id": "profile_now",  "label": "人物像 — 現在",                  "items": [] },
+    { "id": "future",       "label": "ライフスタイルの変化 — 将来",      "items": [] },
+    { "id": "timetable",    "label": "一日のタイムテーブル",             "items": [] },
+    { "id": "priorities",   "label": "大切にしたいこと・ゆずれないこと",  "items": [] },
+    { "id": "belongings",   "label": "物の量と向き合い方",               "items": [] },
+    { "id": "entrance",     "label": "各空間 — 玄関",                   "items": [] },
+    { "id": "sanitary",     "label": "各空間 — サニタリー",              "items": [] },
+    { "id": "toilet",       "label": "各空間 — トイレ",                 "items": [] },
+    { "id": "kitchen",      "label": "各空間 — キッチン",                "items": [] },
+    { "id": "living",       "label": "各空間 — リビング・ダイニング",     "items": [] },
+    { "id": "closet",       "label": "各空間 — クローゼット・収納",      "items": [] },
+    { "id": "bedroom",      "label": "各空間 — 寝室・個室",             "items": [] },
+    { "id": "other_spaces", "label": "その他のスペース",                 "items": [] },
+    { "id": "planning",     "label": "プランニング判断",                 "items": [] },
+    { "id": "aesthetics",   "label": "空間の質感・好み",                 "items": [] },
+    { "id": "issues",       "label": "問題点と改善したいこと",           "items": [] },
+    { "id": "designer_memo","label": "設計者へのメモ",                  "items": [] }
+  ]
+}
+
+ルール：
+- 各 items は文字列の配列。1項目＝1文（20〜60文字程度）。
+- 対話で出てこなかったセクションは items を空配列 [] のままにする。
+- 本人の言葉をできるだけ活かす。評価・断定しない。
+- JSONのみ出力。余分なテキスト一切不要。`;
+
+  history.push({ role: 'user', content: jsonPrompt });
+  try {
+    const jsonRaw = (await claudeAPI(history, 8192))
+      .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    const json = JSON.parse(jsonRaw);
+    history.push({ role: 'assistant', content: jsonRaw });
+    saveReport(json);
+
+    // ── Step 2: Q&A 記事生成 ──
+    loadEl.innerHTML = '<div class="rep-spin"></div>対話記事を作成しています...（2/2）';
+    const qaPrompt = `これまでの対話を、そのまま資料として使えるQ&A形式の読みやすい記事にまとめてください。
+
+出力ルール：
+- Q. （インタビュアー）と A. （クライアント）が交互に続く形式
+- 各ステップの始まりに「## 見出し」を入れる（例：## 家族構成と暮らし / ## 住まいづくりの目的 / ## 一日のタイムテーブル / ## 各空間について / ## 空間の質感・好み / ## プランニング）
+- 【セクション保存】【内省カード】【要望書生成】【ステージ:】【選択肢:】などのマーカーは含めない
+- 話の流れが自然になるよう、必要に応じて質問・回答の順序を調整してよい
+- テキストのみ出力。マークダウンの ** や __ は使わない`;
+
+    const qaMessages = [...conversationSnap, { role: 'user', content: qaPrompt }];
+    const qaText = await claudeAPI(qaMessages, 8192);
+    try { localStorage.setItem(QA_KEY, qaText); } catch(e) {}
+
+    document.getElementById('rep-ov').classList.remove('open');
+    setStage('要望書の完成');
+    saveSession();
+    sendEvent('report');
+    showRepHdrBtn();
+    openFullReport(json, qaText);
+  } catch(e) {
+    history.pop();
+    document.getElementById('rep-ov').classList.remove('open');
+    addMsg('ai', '要望書の生成中にエラーが発生しました。もう一度試すか、STEP 4 の対話に戻ってください。');
+  }
+}
+
+function closeRep() { document.getElementById('rep-ov').classList.remove('open'); }
+
+// ── フルレポートビュー ──
+function openFullReport(json, qaText) {
+  renderFullReport(json, qaText);
+  document.getElementById('fullrep-ov').classList.add('open');
+}
+
+function closeFullReport() {
+  document.getElementById('fullrep-ov').classList.remove('open');
+}
+
+function openFullReportFromStorage() {
+  const json = loadReport();
+  if (!json) return;
+  const qa = (() => { try { return localStorage.getItem(QA_KEY) || ''; } catch(e) { return ''; } })();
+  openFullReport(json, qa);
+}
+
+function renderFullReport(json, qaText) {
+  const page = document.getElementById('fullrep-page');
+  const d = new Date(json.generatedAt);
+  const dateStr = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+
+  function sec(id) {
+    const s = (json.sections || []).find(s => s.id === id);
+    return s ? s.items : [];
+  }
+  function ul(items) {
+    if (!items || items.length === 0) return '<p class="fullrep-empty">—</p>';
+    return '<ul class="fullrep-list">' + items.map(i => `<li>${escH(i)}</li>`).join('') + '</ul>';
+  }
+  function escH(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Part A: Q&A
+  let qaHtml = '';
+  if (qaText) {
+    qaHtml = qaText.split('\n').map(line => {
+      if (line.startsWith('## ')) return `<h3 class="qa-heading">${escH(line.slice(3))}</h3>`;
+      if (/^Q[．.]/.test(line)) return `<div class="qa-q"><span class="qa-label">Q</span><span class="qa-text">${escH(line.replace(/^Q[．.]\s*/,''))}</span></div>`;
+      if (/^A[．.]/.test(line)) return `<div class="qa-a"><span class="qa-label">A</span><span class="qa-text">${escH(line.replace(/^A[．.]\s*/,''))}</span></div>`;
+      if (line.trim() === '') return '<div class="qa-gap"></div>';
+      return `<p class="qa-text" style="margin-bottom:6px;font-size:13px;color:var(--ink-light)">${escH(line)}</p>`;
+    }).join('');
+  }
+
+  // Part B: spaces
+  const spaces = [
+    {id:'entrance',label:'玄関'},{id:'sanitary',label:'サニタリー'},
+    {id:'toilet',label:'トイレ'},{id:'kitchen',label:'キッチン'},
+    {id:'living',label:'リビング・ダイニング'},{id:'closet',label:'クローゼット・収納'},
+    {id:'bedroom',label:'寝室・個室'},{id:'other_spaces',label:'その他のスペース'},
+  ];
+  const spacesHtml = spaces.map(sp => {
+    const items = sec(sp.id);
+    if (!items.length) return '';
+    return `<div class="fullrep-space"><div class="fullrep-space-lbl">${sp.label}</div>${ul(items)}</div>`;
+  }).join('');
+
+  const b3items = [...sec('designer_memo'), ...sec('planning'), ...sec('belongings')];
+
+  page.innerHTML = `
+    <div class="fullrep-cover">
+      <div class="fullrep-cover-label">住まいの対話 — みらいの家</div>
+      <div class="fullrep-cover-ttl">住まい作り要望書</div>
+      <div class="fullrep-cover-date">${dateStr}</div>
+    </div>
+
+    <div class="fullrep-part-hdr"><span>Part A</span>対話記録</div>
+    <div class="qa-article">${qaHtml || '<p class="fullrep-empty">記録がありません</p>'}</div>
+
+    <div class="fullrep-part-hdr"><span>Part B</span>まとめ</div>
+
+    <div class="fullrep-block">
+      <div class="fullrep-block-ttl">01 プロフィール</div>
+      <div class="fullrep-cols3">
+        <div><div class="fullrep-col-lbl">いま</div>${ul(sec('profile_now'))}</div>
+        <div><div class="fullrep-col-lbl">みらい</div>${ul(sec('future'))}</div>
+        <div><div class="fullrep-col-lbl">一日のタイムテーブル</div>${ul(sec('timetable'))}</div>
+      </div>
+    </div>
+
+    <div class="fullrep-block">
+      <div class="fullrep-block-ttl">02 住まいづくりの指針</div>
+      <div class="fullrep-sub"><div class="fullrep-sub-lbl">住まいづくりの目的</div>${ul(sec('purpose'))}</div>
+      <div class="fullrep-sub"><div class="fullrep-sub-lbl">大切にしたいこと・ゆずれないこと</div>${ul(sec('priorities'))}</div>
+      <div class="fullrep-sub"><div class="fullrep-sub-lbl">空間の質感・好み</div>${ul(sec('aesthetics'))}</div>
+    </div>
+
+    <div class="fullrep-block">
+      <div class="fullrep-block-ttl">03 プランニングのポイント</div>
+      ${ul(b3items.length ? b3items : [])}
+    </div>
+
+    <div class="fullrep-block">
+      <div class="fullrep-block-ttl">04 各空間の要件</div>
+      ${spacesHtml || '<p class="fullrep-empty">—</p>'}
+    </div>
+
+    <div class="fullrep-closing">
+      <p>ここまでお疲れ様でした。ここまでの私との対話をまとめた住まい作りの要望書です。完成した要望書はあなたの近くにいる頼れる設計者や工務店などの担当者にお渡ししていただいてもいいですし、あなたの手元において整理した形で実際のヒアリングを受ける場所に持っていっていただいてもいいと思います。</p>
+      <p>また実際の設計のシーンでは、ここからさらにそれぞれの部分にフォーカスを当ててヒアリングを続けていくことになります。詳細ヒアリングは宿題を行ってヒアリングに答えるものになります。所有しているものの種類や大きさなどで分類し、物量を正確に把握しながら、新しい住まいではどうするかなど、ある程度時間がかかるものがほとんどです。一気に進めることはお勧めしません。詳細ヒアリングをご希望の方は追加で一つ一つの部分について1つずつ追加で行うことができます。あせらず1つずつ進めていくのがいいと思います。ご検討ください。</p>
+    </div>
+  `;
+}
+
+inpEl.addEventListener('input', () => {
+  inpEl.style.height = 'auto';
+  inpEl.style.height = Math.min(inpEl.scrollHeight, 120) + 'px';
+});
+inpEl.addEventListener('keydown', e => {
+  if (e.isComposing || e.keyCode === 229) return; // 日本語変換の確定Enterでは送信しない
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+
+function start() {
+  addVoiceBanner();
+  showTyping();
+
+  setTimeout(() => {
+    hideTyping();
+    addMsg('ai', '良い家づくりは、良い設計者を見つけることから始まるわけではありません。\n\nその前に大切なことがあります。自分自身の暮らしと、向き合う時間です。\n\n設計者は家のプロです。でも、あなたの人生のプロではありません。どんな時間を大切にしたいか、どんな自分でいたいか——それはあなた自身にしか分かりません。\n\nこの対話を通じて、その問いを一緒に整理していきましょう。');
+
+    setTimeout(() => {
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        const q = 'まず、今の暮らしについて教えてください。\n\n今、何人で暮らしていますか？ご家族の年齢や、それぞれの働き方（在宅・通勤など）も、わかる範囲で教えていただけると助かります。';
+        addMsg('ai', q);
+        setStage('家族構成を把握する');
+        history.push({ role: 'assistant', content: q });
+      }, 800);
+    }, 1200);
+  }, 900);
+}
+
+window.addEventListener('load', () => {
+  if (/Line\/|Instagram|FBAV|FBAN/.test(navigator.userAgent)) {
+    const b = document.createElement('div');
+    b.className = 'inapp-banner';
+    b.textContent = '⚠️ アプリ内ブラウザで開いています。記録が消える恐れがあるため、メニューから「Safariで開く」「他のブラウザで開く」を選んでご利用ください。';
+    document.body.appendChild(b);
+  }
+  if (loadReport()) showRepHdrBtn();
+  if (!PROXY_URL && !getApiKey()) {
+    showApiKeyModal();
+  } else {
+    const session = loadSession();
+    if (session && session.history?.length > 0) {
+      showResumeCard(session);
+    } else {
+      showGuidance();
+    }
+  }
+});
+</script>
+</body>
+</html>
