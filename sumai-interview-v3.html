@@ -1272,7 +1272,9 @@ function initRecognition() {
     inpEl.placeholder = 'ここに入力してください...';
     if (voiceBtn) { voiceBtn.textContent = '音声で話す'; voiceBtn.classList.remove('rec'); }
     if (fixedMic) fixedMic.classList.remove('rec');
-    if (inpEl.value.trim()) sendMsg();
+    // 自動送信はしない：内容を確認して自分で送信してもらう。
+    // 沈黙で録音が切れても文章は残り、もう一度マイクを押せば続きから追記できる
+    if (inpEl.value.trim()) inpEl.focus();
   };
   recognition.onerror = () => {
     isListening = false;
