@@ -1445,6 +1445,44 @@ function startRevisionChat() {
 
 const QA_KEY = 'mirai-no-ie-qa-v06';
 
+const QA_PROMPT = `これまでの対話を、そのまま資料として使えるQ&A形式の読みやすい記事にまとめてください。
+
+出力ルール：
+- Q. （インタビュアー）と A. （クライアント）が交互に続く形式
+- 各ステップの始まりに「## 見出し」を入れる（例：## 家族構成と暮らし / ## 住まいづくりの目的 / ## 一日のタイムテーブル / ## 各空間について / ## 空間の質感・好み / ## プランニング）
+- 【セクション保存】【内省カード】【要望書生成】【ステージ:】【選択肢:】などのマーカーは含めない
+- JSON形式の発言や要望書の作成指示など、システム的なやりとりが履歴に含まれる場合は無視する
+- 話の流れが自然になるよう、必要に応じて質問・回答の順序を調整してよい
+- テキストのみ出力。マークダウンの ** や __ は使わない`;
+
+// 対話記事のみを（再）生成する。要望書画面のボタンから呼ばれる
+async function regenerateQA() {
+  const json = loadReport();
+  if (!json) { alert('要望書データが見つかりません。'); return; }
+  closeFullReport();
+  const loadEl = document.getElementById('rep-load');
+  document.getElementById('rep-ov').classList.add('open');
+  loadEl.innerHTML = '<div class="rep-spin"></div>対話記事を作成しています...<br><small>画面を閉じずにお待ちください</small>';
+  // 要望書生成のシステム的なやりとり（JSON指示・JSON応答）を除いた会話を使う
+  const snap = history.filter(m =>
+    typeof m.content === 'string' &&
+    !m.content.startsWith('これまでの対話から「生活要望書」をJSON形式で') &&
+    !(m.role === 'assistant' && m.content.trim().startsWith('{'))
+  );
+  try {
+    const qaText = await claudeAPI([...snap, { role: 'user', content: QA_PROMPT }], 8192, n => {
+      loadEl.innerHTML = `<div class="rep-spin"></div>対話記事を作成しています...（${n.toLocaleString()}字）<br><small>画面を閉じずにお待ちください</small>`;
+    });
+    try { localStorage.setItem(QA_KEY, qaText); } catch(e) {}
+    document.getElementById('rep-ov').classList.remove('open');
+    openFullReport(json, qaText);
+  } catch(e) {
+    document.getElementById('rep-ov').classList.remove('open');
+    alert(`対話記事の作成でエラーが発生しました（${e.message}）。少し時間をおいて、もう一度お試しください。`);
+    openFullReport(json, '');
+  }
+}
+
 // ストリーミング受信版API。要望書生成のような長い応答（60秒超）でも
 // Safariのタイムアウトにかからない。onProgress(累計文字数)で進捗を通知
 async function claudeAPI(messages, maxTokens = 1000, onProgress) {
@@ -1560,27 +1598,17 @@ async function generateReport() {
   }
 
   // ── Step 2: Q&A 記事生成（失敗しても要望書のまとめ部分は表示する）──
-  const qaPrompt = `これまでの対話を、そのまま資料として使えるQ&A形式の読みやすい記事にまとめてください。
-
-出力ルール：
-- Q. （インタビュアー）と A. （クライアント）が交互に続く形式
-- 各ステップの始まりに「## 見出し」を入れる（例：## 家族構成と暮らし / ## 住まいづくりの目的 / ## 一日のタイムテーブル / ## 各空間について / ## 空間の質感・好み / ## プランニング）
-- 【セクション保存】【内省カード】【要望書生成】【ステージ:】【選択肢:】などのマーカーは含めない
-- JSON形式の発言や要望書の作成指示など、システム的なやりとりが履歴に含まれる場合は無視する
-- 話の流れが自然になるよう、必要に応じて質問・回答の順序を調整してよい
-- テキストのみ出力。マークダウンの ** や __ は使わない`;
-
   let qaText = '';
   try {
     loadEl.innerHTML = '<div class="rep-spin"></div>対話記事を作成しています...（2/2）<br><small>画面を閉じずにお待ちください</small>';
-    const qaMessages = [...conversationSnap, { role: 'user', content: qaPrompt }];
+    const qaMessages = [...conversationSnap, { role: 'user', content: QA_PROMPT }];
     qaText = await claudeAPI(qaMessages, 8192, n => {
       loadEl.innerHTML = `<div class="rep-spin"></div>対話記事を作成しています...（2/2・${n.toLocaleString()}字）<br><small>画面を閉じずにお待ちください</small>`;
     });
     try { localStorage.setItem(QA_KEY, qaText); } catch(e) {}
   } catch(e) {
     qaText = '';
-    addMsg('ai', `対話記事の作成でエラーが発生しました（${e.message}）。要望書のまとめ部分は完成しています。「要望書を作り直してください」と話しかけると、対話記事をもう一度作成できます。`);
+    addMsg('ai', `対話記事の作成でエラーが発生しました（${e.message}）。要望書のまとめ部分は完成しています。画面上部の「要望書」を開き、「対話記事を作成する」ボタンから再作成できます。`);
   }
 
   document.getElementById('rep-ov').classList.remove('open');
@@ -1662,7 +1690,11 @@ function renderFullReport(json, qaText) {
     </div>
 
     <div class="fullrep-part-hdr"><span>Part A</span>対話記録</div>
-    <div class="qa-article">${qaHtml || '<p class="fullrep-empty">記録がありません</p>'}</div>
+    <div class="qa-article">${qaHtml || `
+      <div class="no-print" style="text-align:center;padding:20px 0 28px">
+        <p class="fullrep-empty" style="margin-bottom:14px">対話記事はまだ作成されていません。</p>
+        <button class="vb-btn" onclick="regenerateQA()" style="padding:11px 24px;font-size:13px">対話記事を作成する</button>
+      </div>`}</div>
 
     <div class="fullrep-part-hdr"><span>Part B</span>まとめ</div>
 
