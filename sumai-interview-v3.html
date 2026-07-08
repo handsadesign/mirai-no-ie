@@ -1445,15 +1445,56 @@ function startRevisionChat() {
 
 const QA_KEY = 'mirai-no-ie-qa-v06';
 
-async function claudeAPI(messages, maxTokens = 1000) {
+// ストリーミング受信版API。要望書生成のような長い応答（60秒超）でも
+// Safariのタイムアウトにかからない。onProgress(累計文字数)で進捗を通知
+async function claudeAPI(messages, maxTokens = 1000, onProgress) {
   const res = await fetch(apiEndpoint(), {
     method: 'POST',
     headers: apiHeaders(),
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: withCache(messages) })
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, stream: true, messages: withCache(messages) })
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.content?.[0]?.text || '';
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', text = '', rawAll = '', sawEvent = false;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = dec.decode(value, { stream: true });
+    rawAll += chunk;
+    buf += chunk;
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (!payload) continue;
+      let ev;
+      try { ev = JSON.parse(payload); } catch(e) { continue; }
+      sawEvent = true;
+      if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+        text += ev.delta.text;
+        if (onProgress) onProgress(text.length);
+      } else if (ev.type === 'error') {
+        throw new Error(ev.error?.message || 'ストリームエラー');
+      }
+    }
+  }
+  if (!sawEvent) {
+    // ストリームでない応答（エラーJSON等）だった場合
+    try {
+      const data = JSON.parse(rawAll);
+      if (data.error) throw new Error(data.error.message);
+      return data.content?.[0]?.text || '';
+    } catch(e) {
+      if (e.message && !e.message.includes('JSON')) throw e;
+      throw new Error('応答を読み取れませんでした');
+    }
+  }
+  return text;
 }
 
 async function generateReport() {
@@ -1499,40 +1540,55 @@ async function generateReport() {
 - 本人の言葉をできるだけ活かす。評価・断定しない。
 - JSONのみ出力。余分なテキスト一切不要。`;
 
+  // ── Step 1: JSON 要約生成（失敗したら履歴を元に戻して中断）──
   history.push({ role: 'user', content: jsonPrompt });
+  let json;
   try {
-    const jsonRaw = (await claudeAPI(history, 8192))
+    const jsonRaw = (await claudeAPI(history, 8192, n => {
+      loadEl.innerHTML = `<div class="rep-spin"></div>対話の内容を整理しています...（1/2・${n.toLocaleString()}字）<br><small>画面を閉じずにお待ちください</small>`;
+    }))
       .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
-    const json = JSON.parse(jsonRaw);
+    json = JSON.parse(jsonRaw);
     history.push({ role: 'assistant', content: jsonRaw });
     saveReport(json);
+  } catch(e) {
+    history.pop();  // 失敗時はJSON指示文を履歴から取り除く（ゴミを残さない）
+    saveSession();
+    document.getElementById('rep-ov').classList.remove('open');
+    addMsg('ai', `要望書の生成中にエラーが発生しました（${e.message}）。少し時間をおいてから「要望書を作成してください」と話しかけると、もう一度試せます。`);
+    return;
+  }
 
-    // ── Step 2: Q&A 記事生成 ──
-    loadEl.innerHTML = '<div class="rep-spin"></div>対話記事を作成しています...（2/2）';
-    const qaPrompt = `これまでの対話を、そのまま資料として使えるQ&A形式の読みやすい記事にまとめてください。
+  // ── Step 2: Q&A 記事生成（失敗しても要望書のまとめ部分は表示する）──
+  const qaPrompt = `これまでの対話を、そのまま資料として使えるQ&A形式の読みやすい記事にまとめてください。
 
 出力ルール：
 - Q. （インタビュアー）と A. （クライアント）が交互に続く形式
 - 各ステップの始まりに「## 見出し」を入れる（例：## 家族構成と暮らし / ## 住まいづくりの目的 / ## 一日のタイムテーブル / ## 各空間について / ## 空間の質感・好み / ## プランニング）
 - 【セクション保存】【内省カード】【要望書生成】【ステージ:】【選択肢:】などのマーカーは含めない
+- JSON形式の発言や要望書の作成指示など、システム的なやりとりが履歴に含まれる場合は無視する
 - 話の流れが自然になるよう、必要に応じて質問・回答の順序を調整してよい
 - テキストのみ出力。マークダウンの ** や __ は使わない`;
 
+  let qaText = '';
+  try {
+    loadEl.innerHTML = '<div class="rep-spin"></div>対話記事を作成しています...（2/2）<br><small>画面を閉じずにお待ちください</small>';
     const qaMessages = [...conversationSnap, { role: 'user', content: qaPrompt }];
-    const qaText = await claudeAPI(qaMessages, 8192);
+    qaText = await claudeAPI(qaMessages, 8192, n => {
+      loadEl.innerHTML = `<div class="rep-spin"></div>対話記事を作成しています...（2/2・${n.toLocaleString()}字）<br><small>画面を閉じずにお待ちください</small>`;
+    });
     try { localStorage.setItem(QA_KEY, qaText); } catch(e) {}
-
-    document.getElementById('rep-ov').classList.remove('open');
-    setStage('要望書の完成');
-    saveSession();
-    sendEvent('report');
-    showRepHdrBtn();
-    openFullReport(json, qaText);
   } catch(e) {
-    history.pop();
-    document.getElementById('rep-ov').classList.remove('open');
-    addMsg('ai', '要望書の生成中にエラーが発生しました。もう一度試すか、STEP 4 の対話に戻ってください。');
+    qaText = '';
+    addMsg('ai', `対話記事の作成でエラーが発生しました（${e.message}）。要望書のまとめ部分は完成しています。「要望書を作り直してください」と話しかけると、対話記事をもう一度作成できます。`);
   }
+
+  document.getElementById('rep-ov').classList.remove('open');
+  setStage('要望書の完成');
+  saveSession();
+  sendEvent('report');
+  showRepHdrBtn();
+  openFullReport(json, qaText);
 }
 
 function closeRep() { document.getElementById('rep-ov').classList.remove('open'); }
