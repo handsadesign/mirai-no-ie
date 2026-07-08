@@ -1159,7 +1159,8 @@ async function callClaude(userMsg) {
 }
 
 // ── 自動ブレーキ（暴走・想定外の連投からコストを守る）──
-const BRAKES = { maxUserTurns: 150, warnUserTurns: 110, minSendIntervalMs: 1500, maxMsgChars: 2000 };
+// 音声入力は沈黙のたびに1往復消費するため上限は多めに取る
+const BRAKES = { maxUserTurns: 300, warnUserTurns: 220, minSendIntervalMs: 1500, maxMsgChars: 2000 };
 let lastSendAt = 0;
 let brakeWarned = false;
 
@@ -1175,7 +1176,9 @@ async function sendMsg() {
   }
   const userTurns = history.filter(m => m.role === 'user').length;
   if (userTurns >= BRAKES.maxUserTurns) {
-    alert('対話が想定の上限に達しました。「記録を保存」で控えを残した上で、要望書の作成に進んでください。');
+    if (confirm('対話が想定の上限に達しました。\nこれまでの内容で「住まい作り要望書」を作成しますか？\n\n（キャンセルした場合、このメッセージは送信されません。「記録を保存」で控えを残すことをおすすめします）')) {
+      generateReport();
+    }
     return;
   }
   if (userTurns >= BRAKES.warnUserTurns && !brakeWarned) {
