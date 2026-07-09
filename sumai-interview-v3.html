@@ -1138,6 +1138,27 @@ function confirmClear() {
   }
 }
 
+// 再開時の挨拶をアプリ側で生成する（APIコストなし）。経過時間と進行度で文面を変える
+function buildResumeGreeting(session) {
+  let gap = '';
+  try {
+    const days = Math.floor((Date.now() - new Date(session.savedAt)) / 86400000);
+    if (days >= 7) gap = 'おかえりなさい。少し間が空きましたね。';
+    else if (days >= 1) gap = 'おかえりなさい。';
+    else gap = 'おかえりなさい。またお話しできてうれしいです。';
+  } catch(e) { gap = 'おかえりなさい。'; }
+
+  const done = (session.completedSections || []);
+  let where;
+  if (done.includes('STEP3')) where = 'ここまで、暮らしや空間の好みまでじっくり話していただきました。';
+  else if (done.includes('STEP2B')) where = 'ここまで、一日の暮らしをたどってきましたね。';
+  else if (done.includes('STEP2A')) where = 'ここまで、朝からの暮らしを教えていただきました。';
+  else if (done.includes('STEP0-1')) where = 'ここまで、住まいづくりの目的を整理してきましたね。';
+  else where = '';
+
+  return `${gap}${where}\n急がなくて大丈夫です。前回はこんなお話をしていました。ここから、ゆっくり続けていきましょう。`;
+}
+
 function resumeSession() {
   const session = window._pendingSession;
   if (!session) return;
@@ -1150,8 +1171,9 @@ function resumeSession() {
   addVoiceBanner();
   const sep = document.createElement('div');
   sep.className = 'rs-sep';
-  sep.textContent = '— 前回のセッションを再開しました —';
+  sep.textContent = '— 前回のつづき —';
   chatEl.insertBefore(sep, typingEl);
+  addMsg('ai', buildResumeGreeting(session));
   const lastAI = [...history].reverse().find(m => m.role === 'assistant');
   if (lastAI) addMsg('ai', cleanText(lastAI.content));
   const doneSections = session.completedSections || [];
