@@ -1029,9 +1029,15 @@ function clearSession() {
 }
 
 // ── 記録ファイルの保存・読み込み（端末内バックアップ）──
-function exportSession() {
+async function exportSession() {
   const raw = localStorage.getItem(SESSION_KEY);
   if (!raw) { alert('保存できる記録がまだありません。'); return; }
+  const isiOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const guide = isiOS
+    ? 'ここまでの対話を1つのファイルとして保存します。\n\nこのあと共有メニューが開きます。「"ファイル"に保存」を選ぶと、iPhoneの「ファイル」アプリに控えが残ります（記録が消えたときの復元用です）。'
+    : 'ここまでの対話を1つのファイルとして保存します。\n\nこのあと保存先を選ぶ画面が出ます。分かる場所（デスクトップやダウンロード）に保存してください。記録が消えたときの復元用の控えになります。';
+  if (!confirm(guide)) return;
+
   let report = null;
   try { report = JSON.parse(localStorage.getItem(REPORT_KEY)); } catch(e) {}
   const bundle = {
@@ -1043,7 +1049,21 @@ function exportSession() {
   };
   const d = new Date();
   const name = `住まいの対話_記録_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
-  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  const text = JSON.stringify(bundle, null, 2);
+
+  // iOS等：Web共有シート経由でファイルを渡すと「"ファイル"に保存」などの自然な選択肢が出る
+  try {
+    const file = new File([text], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: '住まいの対話 記録' });
+      return;
+    }
+  } catch(e) {
+    if (e && e.name === 'AbortError') return; // ユーザーがキャンセルしただけ
+  }
+
+  // 通常のダウンロード（PC等）
+  const blob = new Blob([text], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = name;
