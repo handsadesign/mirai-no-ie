@@ -869,8 +869,8 @@ function addMilestoneCard() {
   const card = document.createElement('div');
   card.className = 'vb';
   card.innerHTML = `<div style="font-size:20px">📄</div>
-    <div class="vb-txt"><strong>ここまでの整理を成果物にできます</strong>目的の整理を「ここまでのまとめ」として表示し、ファイルとして手元に残せます。</div>
-    <button class="vb-btn" onclick="generateMilestone(this)">まとめを作成</button>`;
+    <div class="vb-txt"><strong>無料でのヒアリングはここまでです</strong>ここまでのまとめを、手元に残せます。</div>
+    <button class="vb-btn" onclick="generateMilestone(this)">まとめを保存する</button>`;
   chatEl.insertBefore(card, typingEl);
   scrollBtm();
 }
@@ -888,16 +888,16 @@ async function generateMilestone(btn) {
     addMsg('ai', txt);
     const d = new Date();
     const name = `住まいの対話_ここまでのまとめ_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.txt`;
-    const blob = new Blob([`住まいの対話 — ここまでのまとめ\n${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日\n\n${txt}`], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const body = `住まいの対話 — ここまでのまとめ\n${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日\n\n${txt}`;
+    const isiOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    alert(isiOS
+      ? 'ここまでのまとめを保存します。\n\nこのあと共有メニューが開きます。「"ファイル"に保存」を選ぶと、iPhoneの「ファイル」アプリに残せます。'
+      : 'ここまでのまとめを保存します。\n\nこのあと保存先を選ぶ画面が出ます。分かる場所に保存してください。');
+    await saveTextFile(name, body, 'text/plain');
     btn.textContent = 'まとめを保存しました ✓';
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'まとめを作成';
+    btn.textContent = 'まとめを保存する';
     alert('まとめの作成に失敗しました。もう一度お試しください。');
   } finally {
     releaseAwake();
@@ -1029,6 +1029,27 @@ function clearSession() {
 }
 
 // ── 記録ファイルの保存・読み込み（端末内バックアップ）──
+// テキストをファイルとして保存する共通処理。
+// iOS等では共有シート（「"ファイル"に保存」等）、PCでは通常ダウンロード
+async function saveTextFile(name, text, mime = 'application/json') {
+  try {
+    const file = new File([text], name, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: name.replace(/\.[^.]+$/, '') });
+      return true;
+    }
+  } catch(e) {
+    if (e && e.name === 'AbortError') return false; // ユーザーがキャンセル
+  }
+  const blob = new Blob([text], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  return true;
+}
+
 async function exportSession() {
   const raw = localStorage.getItem(SESSION_KEY);
   if (!raw) { alert('保存できる記録がまだありません。'); return; }
@@ -1049,26 +1070,7 @@ async function exportSession() {
   };
   const d = new Date();
   const name = `住まいの対話_記録_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
-  const text = JSON.stringify(bundle, null, 2);
-
-  // iOS等：Web共有シート経由でファイルを渡すと「"ファイル"に保存」などの自然な選択肢が出る
-  try {
-    const file = new File([text], name, { type: 'application/json' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: '住まいの対話 記録' });
-      return;
-    }
-  } catch(e) {
-    if (e && e.name === 'AbortError') return; // ユーザーがキャンセルしただけ
-  }
-
-  // 通常のダウンロード（PC等）
-  const blob = new Blob([text], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  await saveTextFile(name, JSON.stringify(bundle, null, 2), 'application/json');
 }
 
 function importSessionFile(file) {
