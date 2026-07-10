@@ -209,6 +209,17 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .fullrep-nav-ttl{font-family:var(--serif);font-size:14px;color:var(--ink-mid);letter-spacing:.06em}
 .fullrep-print-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:8px 16px;font-size:12px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em}
 .fullrep-body{flex:1;overflow-y:auto;padding:40px 20px 80px}
+/* 住まい作り要望書（ブック体裁 / Design Brief） */
+.brief-hdr-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.brief-mini-btn{background:none;border:1px solid var(--ink-faint);color:var(--ink-mid);border-radius:var(--r-sm);padding:8px 12px;font-size:12px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;white-space:nowrap}
+#brief-ov .fullrep-print-btn{white-space:nowrap}
+#brief-ov .fullrep-nav-ttl{flex:1;min-width:0;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px}
+#brief-ov .fullrep-back{flex-shrink:0;white-space:nowrap}
+.brief-body{flex:1;position:relative;overflow:hidden;background:#e9e4d8}
+.brief-frame{display:block;width:100%;max-width:576px;height:100%;margin:0 auto;border:none;background:#fff;box-shadow:0 0 24px rgba(0,0,0,.08)}
+.brief-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--paper);padding:24px}
+.brief-load-txt{font-size:14px;color:var(--ink-mid);font-family:var(--sans)}
+.brief-load-sub{font-size:12px;color:var(--ink-faint);font-family:var(--sans);margin-top:8px;max-width:280px;line-height:1.7}
 /* 使い方ガイド */
 .help-tabs{display:flex;gap:8px;padding:12px 20px 0;background:var(--paper-card);border-bottom:1px solid var(--ink-faint);flex-shrink:0}
 .help-tab{background:none;border:none;padding:8px 16px 12px;font-size:13px;font-family:var(--sans);color:var(--ink-light);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
@@ -490,7 +501,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <button class="rewind-btn" id="rewind-btn" onclick="openRewind()">↩ 戻る</button>
       <button class="rep-hdr-btn visible" onclick="openHelp()">使い方</button>
       <button class="rep-hdr-btn" id="export-btn" onclick="exportSession()">記録を保存</button>
-      <button class="rep-hdr-btn" id="rep-hdr-btn" onclick="openFullReportFromStorage()">要望書</button>
+      <button class="rep-hdr-btn" id="rep-hdr-btn" onclick="openBrief()">要望書</button>
       <div class="stage" id="stage">はじめに</div>
     </div>
   </div>
@@ -547,6 +558,26 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   </div>
   <div class="fullrep-body">
     <div class="fullrep-page" id="fullrep-page"></div>
+  </div>
+</div>
+
+<!-- ── 住まい作り要望書（ブック体裁 / Design Brief）── -->
+<div class="fullrep-ov" id="brief-ov">
+  <div class="fullrep-hdr no-print">
+    <button class="fullrep-back" onclick="closeBrief()">← 戻る</button>
+    <div class="fullrep-nav-ttl">住まい作り要望書</div>
+    <div class="brief-hdr-actions">
+      <button class="brief-mini-btn" id="brief-regen-btn" onclick="regenerateBrief()">作り直す</button>
+      <button class="fullrep-print-btn" onclick="printBrief()">印刷 / PDF保存</button>
+    </div>
+  </div>
+  <div class="brief-body" id="brief-body">
+    <iframe class="brief-frame" id="brief-frame" title="住まい作り要望書"></iframe>
+    <div class="brief-load" id="brief-load" style="display:none">
+      <div class="rep-spin"></div>
+      <div class="brief-load-txt" id="brief-load-txt">要望書を仕上げています…</div>
+      <div class="brief-load-sub">対話から、冊子の素材を整えています。少しお待ちください。</div>
+    </div>
   </div>
 </div>
 
@@ -617,6 +648,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <div class="mypage-footer-hint" id="mypage-footer-hint">気になる部分をタップして選んでください</div>
   </div>
 </div>
+
+<!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
+<script src="brief_render.js"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1622,11 +1656,11 @@ async function regenerateQA() {
 
 // ストリーミング受信版API。要望書生成のような長い応答（60秒超）でも
 // Safariのタイムアウトにかからない。onProgress(累計文字数)で進捗を通知
-async function claudeAPI(messages, maxTokens = 1000, onProgress) {
+async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
   const res = await fetch(apiEndpoint(), {
     method: 'POST',
     headers: apiHeaders(),
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, stream: true, messages: withCache(messages) })
+    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, stream: true, messages: withCache(messages) }, extra))
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -1736,27 +1770,15 @@ async function generateReport() {
     return;
   }
 
-  // ── Step 2: Q&A 記事生成（失敗しても要望書のまとめ部分は表示する）──
-  let qaText = '';
-  try {
-    loadEl.innerHTML = '<div class="rep-spin"></div>対話記事を作成しています...（2/2）<br><small>画面を閉じずにお待ちください</small>';
-    const qaMessages = [...conversationSnap, { role: 'user', content: QA_PROMPT }];
-    qaText = await claudeAPI(qaMessages, 8192, n => {
-      loadEl.innerHTML = `<div class="rep-spin"></div>対話記事を作成しています...（2/2・${n.toLocaleString()}字）<br><small>画面を閉じずにお待ちください</small>`;
-    });
-    try { localStorage.setItem(QA_KEY, qaText); } catch(e) {}
-  } catch(e) {
-    qaText = '';
-    addMsg('ai', `対話記事の作成でエラーが発生しました（${e.message}）。要望書のまとめ部分は完成しています。画面上部の「要望書」を開き、「対話記事を作成する」ボタンから再作成できます。`);
-  }
-
+  // 要望書（土台のJSON）が完成。ブック体裁の仕上げ（EDITORIAL生成）は
+  // 「要望書」を初めて開いた時に行う（②A：対話終了の流れを遅くしないため、ここでは回さない）。
   document.getElementById('rep-ov').classList.remove('open');
   releaseAwake();
   setStage('要望書の完成');
   saveSession();
   sendEvent('report');
   showRepHdrBtn();
-  openFullReport(json, qaText);
+  addMsg('ai', 'ここまでの対話が、住まい作りの要望書としてまとまりました。画面上部の「要望書」ボタンから、いつでも冊子として開けます。（初回だけ、仕上げに少しお時間をいただきます）');
 }
 
 function closeRep() { document.getElementById('rep-ov').classList.remove('open'); }
@@ -1786,6 +1808,137 @@ function openFullReportFromStorage() {
   const qa = (() => { try { return localStorage.getItem(QA_KEY) || ''; } catch(e) { return ''; } })();
   openFullReport(json, qa);
 }
+
+// ── 住まい作り要望書（ブック体裁 / Design Brief）───────────────────────────────
+// EDITORIAL（脚色防止ガードレール下でAIが作る編集素材）を生成し、renderBrief で描画。
+// キャッシュは report.generatedAt に紐づけ、要望が更新されたら自動で作り直す。
+const EDITORIAL_KEY = 'mirai-no-ie-editorial-v1';
+const _BRIEF_EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{FE00}-\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{200D}]+/gu;
+
+function _briefClean(t) {
+  return t.replace(/【[^】]*】/g, '').replace(_BRIEF_EMOJI, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// 対話（要望書生成のやりとりの手前まで）＋整理済み要望リストを、EDITORIAL生成の素材にする
+function buildEditorialSource(report) {
+  const lines = [];
+  for (const m of history) {
+    const c = m && m.content;
+    if (typeof c !== 'string') continue;
+    if (c.indexOf('生活要望書」をJSON形式で') >= 0) break;
+    const cc = _briefClean(c);
+    if (!cc) continue;
+    lines.push((m.role === 'user' ? '住まい手' : '聞き手') + ': ' + cc);
+  }
+  const reportJson = JSON.stringify(report.sections || [], null, 1);
+  return '# 対話記録\n' + lines.join('\n') + '\n\n# 整理済みの要望リスト（参考）\n' + reportJson;
+}
+
+function loadEditorialFor(report) {
+  try {
+    const c = JSON.parse(localStorage.getItem(EDITORIAL_KEY));
+    if (c && c.editorial && c.generatedAt === report.generatedAt) return c.editorial;
+  } catch(e) {}
+  return null;
+}
+
+// EDITORIAL を生成（mode:'editorial' でサーバ側の編集プロンプトを使う）
+async function generateEditorial(report, onProgress) {
+  const source = buildEditorialSource(report);
+  const raw = (await claudeAPI([{ role: 'user', content: source }], 3072, onProgress, { mode: 'editorial' }))
+    .replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  const ed = JSON.parse(raw);
+  try { localStorage.setItem(EDITORIAL_KEY, JSON.stringify({ generatedAt: report.generatedAt, editorial: ed })); } catch(e) {}
+  return ed;
+}
+
+function _renderBriefInto(report, ed) {
+  const frame = document.getElementById('brief-frame');
+  frame.srcdoc = renderBrief(report, ed, history);
+  fitBriefFrame();
+}
+
+// 画面ではブック1ページ幅(576px≒152.4mm)で組む。狭い端末では縮小して幅にフィット。
+function fitBriefFrame() {
+  const ov = document.getElementById('brief-ov');
+  if (!ov || !ov.classList.contains('open')) return;
+  const body = document.getElementById('brief-body');
+  const frame = document.getElementById('brief-frame');
+  const PAGE = 576, avail = body.clientWidth;
+  if (avail < PAGE) {
+    const s = avail / PAGE;
+    frame.style.width = PAGE + 'px';
+    frame.style.maxWidth = 'none';
+    frame.style.height = Math.ceil(body.clientHeight / s) + 'px';
+    frame.style.transformOrigin = 'top left';
+    frame.style.transform = 'scale(' + s + ')';
+    frame.style.margin = '0';
+  } else {
+    frame.style.width = '100%';
+    frame.style.maxWidth = PAGE + 'px';
+    frame.style.height = '100%';
+    frame.style.transform = 'none';
+    frame.style.margin = '0 auto';
+  }
+}
+window.addEventListener('resize', fitBriefFrame);
+
+function _briefLoading(show, txt) {
+  document.getElementById('brief-load').style.display = show ? 'flex' : 'none';
+  document.getElementById('brief-frame').style.visibility = show ? 'hidden' : 'visible';
+  if (txt) document.getElementById('brief-load-txt').textContent = txt;
+}
+
+// 「要望書」ボタン → ブック体裁で開く。無ければ（or 要望更新後は）初回に生成する（②A）
+async function openBrief() {
+  const report = loadReport();
+  if (!report) { alert('要望書データが見つかりません。'); return; }
+  document.getElementById('brief-ov').classList.add('open');
+  let ed = loadEditorialFor(report);
+  if (ed) { _briefLoading(false); _renderBriefInto(report, ed); return; }
+  // 初回オープン or 要望が変わった → 生成
+  _briefLoading(true, '要望書を仕上げています…');
+  keepAwake();
+  try {
+    ed = await generateEditorial(report, n => _briefLoading(true, `要望書を仕上げています…（${n.toLocaleString()}字）`));
+  } catch(e) {
+    releaseAwake();
+    document.getElementById('brief-ov').classList.remove('open');
+    _briefLoading(false);
+    alert(`要望書の作成でエラーが発生しました（${e.message}）。少し時間をおいて、もう一度お試しください。`);
+    return;
+  }
+  releaseAwake();
+  _briefLoading(false);
+  _renderBriefInto(report, ed);
+}
+
+// 「作り直す」→ 要望は同じでも別の切り口で出し直す
+async function regenerateBrief() {
+  const report = loadReport();
+  if (!report) return;
+  if (!confirm('要望書をもう一度作り直しますか？（内容が少し変わることがあります）')) return;
+  _briefLoading(true, '要望書を作り直しています…');
+  keepAwake();
+  try {
+    const ed = await generateEditorial(report, n => _briefLoading(true, `要望書を作り直しています…（${n.toLocaleString()}字）`));
+    _briefLoading(false);
+    _renderBriefInto(report, ed);
+  } catch(e) {
+    _briefLoading(false);
+    alert(`作り直しでエラーが発生しました（${e.message}）。`);
+  } finally {
+    releaseAwake();
+  }
+}
+
+function printBrief() {
+  const frame = document.getElementById('brief-frame');
+  try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+  catch(e) { window.print(); }
+}
+
+function closeBrief() { document.getElementById('brief-ov').classList.remove('open'); }
 
 function renderFullReport(json, qaText) {
   const page = document.getElementById('fullrep-page');
