@@ -209,6 +209,23 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .fullrep-nav-ttl{font-family:var(--serif);font-size:14px;color:var(--ink-mid);letter-spacing:.06em}
 .fullrep-print-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:8px 16px;font-size:12px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em}
 .fullrep-body{flex:1;overflow-y:auto;padding:40px 20px 80px}
+/* 使い方ガイド */
+.help-tabs{display:flex;gap:8px;padding:12px 20px 0;background:var(--paper-card);border-bottom:1px solid var(--ink-faint);flex-shrink:0}
+.help-tab{background:none;border:none;padding:8px 16px 12px;font-size:13px;font-family:var(--sans);color:var(--ink-light);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.help-tab.active{color:var(--accent-mid);border-bottom-color:var(--accent);font-weight:500}
+.help-page{max-width:640px;margin:0 auto}
+.help-h{font-family:var(--serif);font-size:19px;font-weight:400;color:var(--ink);margin-bottom:14px;letter-spacing:.04em}
+.help-lead{font-size:13px;color:var(--ink-mid);line-height:1.9;margin-bottom:24px}
+.help-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+.help-num{flex-shrink:0;font-size:10px;letter-spacing:.06em;color:var(--accent-mid);background:var(--accent-dim);padding:4px 9px;border-radius:20px;margin-top:2px;min-width:52px;text-align:center}
+.help-step strong{display:block;font-size:13px;color:var(--ink);margin-bottom:2px}
+.help-step div{font-size:12px;color:var(--ink-mid);line-height:1.75}
+.help-free{display:inline-block;font-size:10px;color:#2d6a2d;background:#f0f7f0;border:1px solid #b8d8b8;border-radius:4px;padding:1px 7px;margin-top:4px}
+.help-note{margin-top:24px;padding:14px 16px;background:var(--paper-warm);border-radius:var(--r-sm);font-size:12px;color:var(--ink-mid);line-height:2}
+.help-tip{margin-bottom:14px;padding:14px 16px;border:1px solid var(--ink-faint);border-radius:var(--r-sm);background:var(--paper-card)}
+.help-tip.warn{background:#fdf6ec;border-color:#ecd9b8}
+.help-tip strong{display:block;font-size:13px;color:var(--ink);margin-bottom:6px}
+.help-tip{font-size:12px;color:var(--ink-mid);line-height:1.85}
 .fullrep-page{max-width:740px;margin:0 auto;background:var(--paper-card);padding:60px 64px;box-shadow:0 2px 20px rgba(0,0,0,.08);border-radius:var(--r)}
 .fullrep-cover{text-align:center;padding:48px 0 64px;border-bottom:1px solid var(--ink-faint);margin-bottom:56px}
 .fullrep-cover-label{font-size:10px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase;margin-bottom:20px}
@@ -471,6 +488,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <div class="logo">住まいの対話<span>SUMAI DIALOGUE</span></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="rewind-btn" id="rewind-btn" onclick="openRewind()">↩ 戻る</button>
+      <button class="rep-hdr-btn visible" onclick="openHelp()">使い方</button>
       <button class="rep-hdr-btn" id="export-btn" onclick="exportSession()">記録を保存</button>
       <button class="rep-hdr-btn" id="rep-hdr-btn" onclick="openFullReportFromStorage()">要望書</button>
       <div class="stage" id="stage">はじめに</div>
@@ -529,6 +547,48 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   </div>
   <div class="fullrep-body">
     <div class="fullrep-page" id="fullrep-page"></div>
+  </div>
+</div>
+
+<!-- ── 使い方・ガイド ── -->
+<div class="fullrep-ov" id="help-ov">
+  <div class="fullrep-hdr">
+    <button class="fullrep-back" onclick="closeHelp()">← 戻る</button>
+    <div class="fullrep-nav-ttl">使い方ガイド</div>
+    <div style="width:56px"></div>
+  </div>
+  <div class="help-tabs">
+    <button class="help-tab active" data-tab="how" onclick="switchHelpTab('how')">進め方</button>
+    <button class="help-tab" data-tab="tips" onclick="switchHelpTab('tips')">大切なこと</button>
+  </div>
+  <div class="fullrep-body">
+    <div class="help-page" id="help-page-how">
+      <h2 class="help-h">このサービスの進め方</h2>
+      <p class="help-lead">家づくりの前に、AIとの対話であなた自身の暮らしの価値観を整理していきます。全体は5つのステップで進みます。急がず、自分のペースでどうぞ。</p>
+
+      <div class="help-step"><span class="help-num">はじめに</span><div><strong>家族とみらいの紹介</strong>ご家族の構成や、5年後・10年後にどんな暮らしをしていたいかを思い描きます。</div></div>
+      <div class="help-step"><span class="help-num">目的</span><div><strong>住まいづくりの目的</strong>「今回の家づくりで本当に叶えたいこと」を、対話を通じて言葉にします。<span class="help-free">ここまで無料</span></div></div>
+      <div class="help-step"><span class="help-num">暮らし</span><div><strong>一日の暮らしをたどる</strong>朝起きてから夜眠るまでの行動を細かく振り返り、各スペースの希望を探ります。事前に1週間ほど暮らしをメモしておくと、より深い対話になります。</div></div>
+      <div class="help-step"><span class="help-num">質感</span><div><strong>空間の雰囲気・好み</strong>好きな場所の色・素材・光・家具などを、言葉で教えてください。</div></div>
+      <div class="help-step"><span class="help-num">優先順位</span><div><strong>プランニングの価値観</strong>限られた広さと予算の中で、何を大切にし何を手放すかを整理します。</div></div>
+      <div class="help-step"><span class="help-num">要望書</span><div><strong>住まい作り要望書</strong>ここまでの対話が、設計者や工務店に渡せる一つの要望書にまとまります。</div></div>
+
+      <div class="help-note">💬 基本は自由に話すスタイルです。答え方に迷ったら選択肢が出ることもあります。選んでも、参考にして自分の言葉で話してもかまいません。<br>🎤 音声入力が使えます。話したあとは内容を確認して、送信ボタンで送ってください。<br>↩ 戻る／記録を保存／要望書 のボタンは、いつでも使えます。</div>
+    </div>
+
+    <div class="help-page" id="help-page-tips" style="display:none">
+      <h2 class="help-h">始める前に、大切なこと</h2>
+
+      <div class="help-tip warn"><strong>⚠️ 数日〜1週間ほど開かないと、記録が消えることがあります</strong>対話の記録は、あなたの暮らしの情報を守るため、この端末の中だけに保存しています（私たちのサーバーには送りません）。その代わり、iPhoneなどでは1週間ほど開かないと端末が記録を自動的に消してしまうことがあり、その場合こちらでは元に戻せません。</div>
+
+      <div class="help-tip"><strong>💾 区切りごとに「記録を保存」を</strong>画面上部の「記録を保存」ボタンで、対話の控えをファイルとして残せます。万一消えても、開始画面の「保存したファイルから再開」で戻れます。一日の終わりや中断の前に、保存する習慣をおすすめします。</div>
+
+      <div class="help-tip"><strong>📱 iPhoneの方は「ホーム画面に追加」</strong>Safariの共有ボタン（□に↑）から追加すると、アプリのように使え、自動で消える制限もなくなります。追加後は必ずアイコンから開いてください。</div>
+
+      <div class="help-tip"><strong>🔒 端末とブラウザは、最後まで同じものを</strong>別の端末・別のブラウザでは続きができません。LINEやInstagramの中では開かず、SafariやChromeで開いてください。</div>
+
+      <div class="help-tip"><strong>👪 ご家族と住む方へ</strong>相談の前に、まずは一人ひとり別々に受けてみてください。お互いに知らなかった本心が見つかり、話し合う良いきっかけになるかもしれません。</div>
+    </div>
   </div>
 </div>
 
@@ -1709,6 +1769,15 @@ function openFullReport(json, qaText) {
 
 function closeFullReport() {
   document.getElementById('fullrep-ov').classList.remove('open');
+}
+
+// ── 使い方ガイド ──
+function openHelp() { document.getElementById('help-ov').classList.add('open'); }
+function closeHelp() { document.getElementById('help-ov').classList.remove('open'); }
+function switchHelpTab(tab) {
+  document.querySelectorAll('.help-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('help-page-how').style.display = tab === 'how' ? '' : 'none';
+  document.getElementById('help-page-tips').style.display = tab === 'tips' ? '' : 'none';
 }
 
 function openFullReportFromStorage() {
