@@ -137,7 +137,7 @@
         return '<div class="tl-row"><div class="tl-t">' + esc(r[0]) + '</div>' +
                '<div class="tl-d">' + esc(r[1]) + '</div></div>';
       }).join('');
-      var note = RHYTHM_NOTE ? '<p class="tl-note">' + esc(RHYTHM_NOTE) + '</p>' : '';
+      var note = RHYTHM_NOTE ? '<div class="tl-note"><div class="tl-note-lbl">暮らしの習慣</div>' + esc(RHYTHM_NOTE) + '</div>' : '';
       var body = kicker('A DAY', '03') +
         '<h1 class="ph">一日の流れ</h1>' +
         '<div class="timeline">' + rows + '</div>' + note;
@@ -315,7 +315,8 @@
 ".timeline{margin-top:2mm;border-top:.6pt solid var(--hair);}\n.tl-row{display:table;width:100%;border-bottom:.6pt solid var(--hair);}\n" +
 ".tl-t{display:table-cell;width:26mm;padding:2.9mm 0;vertical-align:top;font-family:'Lora';font-size:10.5pt;color:var(--clay);letter-spacing:.5pt;}\n" +
 ".tl-d{display:table-cell;padding:2.9mm 0;vertical-align:top;font-size:9.8pt;line-height:1.5;color:var(--ink2);font-weight:300;}\n" +
-".tl-note{margin-top:5mm;font-size:8.6pt;line-height:1.7;color:var(--faint);font-weight:300;}\n" +
+".tl-note{margin-top:7mm;font-size:9.4pt;line-height:1.8;color:var(--ink2);font-weight:300;}\n" +
+".tl-note-lbl{font-size:8pt;letter-spacing:2pt;color:var(--clay);font-weight:500;margin-bottom:3mm;}\n" +
 ".vals{margin-top:2mm;}\n.val{display:table;width:100%;padding:6mm 0;border-bottom:.6pt solid var(--hair);}\n.val:last-child{border-bottom:none;}\n" +
 ".val-n{display:table-cell;width:20mm;vertical-align:top;font-family:'Lora';font-size:15pt;color:var(--faint);letter-spacing:1pt;}\n" +
 ".val-body{display:table-cell;vertical-align:top;}\n.val-t{font-size:15pt;font-weight:400;color:var(--ink);margin-bottom:2.5mm;}\n" +

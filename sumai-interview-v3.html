@@ -1747,7 +1747,10 @@ async function generateReport() {
 ルール：
 - 各 items は文字列の配列。1項目＝1文（20〜60文字程度）。
 - 対話で出てこなかったセクションは items を空配列 [] のままにする。
-- 本人の言葉をできるだけ活かす。評価・断定しない。
+- 本人の言葉と事実だけを書く。本人が言っていないことは書かない。
+- 人物評を書かない（「こだわりを持つ」「関心が高い」「感度が高い」等の人物の評価は禁止）。何を言い・何を望んだかだけを書く。
+- 評価語・美辞（「素敵な」「豊かな」「理想の」等）を足さない。
+- 設計解決策・設計判断（「〜が向いている」「〜を優先」「〜な構造にする」「〜を設ける」等）を書かない。要望と事実に留める。
 - JSONのみ出力。余分なテキスト一切不要。`;
 
   // ── Step 1: JSON 要約生成（失敗したら履歴を元に戻して中断）──
@@ -1759,6 +1762,7 @@ async function generateReport() {
     }))
       .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
     json = JSON.parse(jsonRaw);
+    json.generatedAt = new Date().toISOString();  // 生成日時はコードで確定（LLMが日付を書き換える事故を防ぐ）
     history.push({ role: 'assistant', content: jsonRaw });
     saveReport(json);
   } catch(e) {
