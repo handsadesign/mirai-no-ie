@@ -1301,7 +1301,7 @@ async function callClaude(userMsg) {
     method: 'POST',
     headers: apiHeaders(),
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 1000,
       messages: withCache(history)
     })
@@ -1660,7 +1660,7 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
   const res = await fetch(apiEndpoint(), {
     method: 'POST',
     headers: apiHeaders(),
-    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, stream: true, messages: withCache(messages) }, extra))
+    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-5', max_tokens: maxTokens, stream: true, messages: withCache(messages) }, extra))
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -1845,7 +1845,7 @@ function loadEditorialFor(report) {
 // EDITORIAL を生成（mode:'editorial' でサーバ側の編集プロンプトを使う）
 async function generateEditorial(report, onProgress) {
   const source = buildEditorialSource(report);
-  const raw = (await claudeAPI([{ role: 'user', content: source }], 3072, onProgress, { mode: 'editorial' }))
+  const raw = (await claudeAPI([{ role: 'user', content: source }], 3072, onProgress, { mode: 'editorial', model: 'claude-opus-4-8' }))
     .replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
   const ed = JSON.parse(raw);
   try { localStorage.setItem(EDITORIAL_KEY, JSON.stringify({ generatedAt: report.generatedAt, editorial: ed })); } catch(e) {}
