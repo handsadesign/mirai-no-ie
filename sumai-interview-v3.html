@@ -1706,22 +1706,14 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
   return text;
 }
 
-async function generateReport() {
-  const loadEl = document.getElementById('rep-load');
-  document.getElementById('rep-ov').classList.add('open');
-  keepAwake();
-
-  // 会話スナップショット（Q&A生成用：JSONプロンプト追加前）
-  const conversationSnap = JSON.parse(JSON.stringify(history));
-
-  // ── Step 1: JSON 要約生成 ──
-  loadEl.innerHTML = '<div class="rep-spin"></div>対話の内容を整理しています...（1/2）';
-  const jsonPrompt = `これまでの対話から「生活要望書」をJSON形式で作成してください。
+// 要望書(土台/SOURCE)生成プロンプト。generateReport と regenerateReport で共用。
+// generatedAt はコード側で確定するため、ここでは空にしておく。
+const REPORT_PROMPT = `これまでの対話から「生活要望書」をJSON形式で作成してください。
 
 以下のJSON構造のみを出力してください。前後の説明文・マークダウン・コードブロック（\`\`\`）は不要です。JSONだけを返してください。
 
 {
-  "generatedAt": "${new Date().toISOString()}",
+  "generatedAt": "",
   "sections": [
     { "id": "purpose",      "label": "住まいづくりの目的",              "items": [] },
     { "id": "profile_now",  "label": "人物像 — 現在",                  "items": [] },
@@ -1752,6 +1744,27 @@ async function generateReport() {
 - 評価語・美辞（「素敵な」「豊かな」「理想の」等）を足さない。
 - 設計解決策・設計判断（「〜が向いている」「〜を優先」「〜な構造にする」「〜を設ける」等）を書かない。要望と事実に留める。
 - JSONのみ出力。余分なテキスト一切不要。`;
+
+// 対話（要望書生成のシステム的やりとりを除く）だけのスナップショットを返す
+function conversationOnly() {
+  return history.filter(m =>
+    typeof m.content === 'string' &&
+    !m.content.startsWith('これまでの対話から「生活要望書」をJSON形式で') &&
+    !(m.role === 'assistant' && m.content.trim().startsWith('{'))
+  );
+}
+
+async function generateReport() {
+  const loadEl = document.getElementById('rep-load');
+  document.getElementById('rep-ov').classList.add('open');
+  keepAwake();
+
+  // 会話スナップショット（Q&A生成用：JSONプロンプト追加前）
+  const conversationSnap = JSON.parse(JSON.stringify(history));
+
+  // ── Step 1: JSON 要約生成 ──
+  loadEl.innerHTML = '<div class="rep-spin"></div>対話の内容を整理しています...（1/2）';
+  const jsonPrompt = REPORT_PROMPT;
 
   // ── Step 1: JSON 要約生成（失敗したら履歴を元に戻して中断）──
   history.push({ role: 'user', content: jsonPrompt });
@@ -1917,15 +1930,25 @@ async function openBrief() {
   _renderBriefInto(report, ed);
 }
 
-// 「作り直す」→ 要望は同じでも別の切り口で出し直す
+// 「作り直す」→ 対話のまとめ（土台=report）から作り直し、仕上げ(editorial)も更新する。
+// ＝人物評・評価・設計解決策の抑制や、生成日時の確定など、最新のルールが反映される。
 async function regenerateBrief() {
-  const report = loadReport();
-  if (!report) return;
-  if (!confirm('要望書をもう一度作り直しますか？（内容が少し変わることがあります）')) return;
-  _briefLoading(true, '要望書を作り直しています…');
+  const convo = conversationOnly();
+  if (!convo.length) { alert('対話の記録が見つかりません。'); return; }
+  if (!confirm('対話のまとめから、要望書を作り直しますか？\n最新のルールで土台と仕上げの両方を作り直します（少し時間がかかります）。')) return;
+  _briefLoading(true, '要望書の土台を作り直しています…');
   keepAwake();
   try {
-    const ed = await generateEditorial(report, n => _briefLoading(true, `要望書を作り直しています…（${n.toLocaleString()}字）`));
+    // ① 土台(report)を対話から作り直す
+    const jsonRaw = (await claudeAPI([...convo, { role: 'user', content: REPORT_PROMPT }], 8192, n =>
+      _briefLoading(true, `要望書の土台を作り直しています…（${n.toLocaleString()}字）`)))
+      .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    const report = JSON.parse(jsonRaw);
+    report.generatedAt = new Date().toISOString();  // 日付はコードで確定
+    saveReport(report);
+    // ② 仕上げ(editorial)を作り直す（generatedAt に紐づけて保存）
+    const ed = await generateEditorial(report, n =>
+      _briefLoading(true, `要望書を仕上げています…（${n.toLocaleString()}字）`));
     _briefLoading(false);
     _renderBriefInto(report, ed);
   } catch(e) {
