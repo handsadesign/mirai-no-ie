@@ -1328,7 +1328,10 @@ async function callClaude(userMsg) {
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
   const data = await res.json();
-  const txt = data.content?.[0]?.text || 'うまく受け取れませんでした。もう一度お試しください。';
+  // content配列の先頭が常に text ブロックとは限らない（拡張思考が有効だと
+  // 先頭に thinking ブロックが入る）。type:'text' のブロックを探して使う。
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  const txt = textBlock?.text || 'うまく受け取れませんでした。もう一度お試しください。';
   history.push({ role: 'assistant', content: txt });
   return txt;
 }
@@ -1714,7 +1717,7 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
     try {
       const data = JSON.parse(rawAll);
       if (data.error) throw new Error(data.error.message);
-      return data.content?.[0]?.text || '';
+      return (data.content || []).find(b => b.type === 'text')?.text || '';
     } catch(e) {
       if (e.message && !e.message.includes('JSON')) throw e;
       throw new Error('応答を読み取れませんでした');
