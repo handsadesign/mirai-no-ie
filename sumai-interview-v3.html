@@ -28,7 +28,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .hdr-row{display:flex;align-items:center;justify-content:space-between}
 .logo{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--ink-mid);letter-spacing:.08em}
 .logo span{font-size:10px;font-weight:300;color:var(--ink-light);display:block;letter-spacing:.14em;margin-top:1px}
-.stage{font-size:11px;color:var(--accent-mid);background:var(--accent-dim);padding:4px 11px;border-radius:20px;letter-spacing:.04em;transition:all .4s}
+.stage{font-size:11px;color:var(--ink-light);background:none;padding:4px 0 4px 10px;border-left:1px solid var(--ink-faint);letter-spacing:.02em;transition:all .4s;cursor:default}
 
 /* progress strip */
 .prog{display:flex;max-width:520px;margin:12px auto 0;padding:0 4px 10px}
@@ -789,8 +789,7 @@ function maybeAddPaywall(label) {
     <button class="paygate-btn" onclick="openMockCheckout('${label}')">支払って進む</button>
     ${PRICING.live ? '' : '<div class="paygate-note">※テスト公開中のため、実際の請求は発生しません</div>'}
   `;
-  chatEl.insertBefore(card, typingEl);
-  scrollBtm();
+  appendToChat(card, true);
   return true;
 }
 
@@ -815,10 +814,9 @@ function completeMockPayment() {
   const el = document.createElement('div');
   el.className = 'save-indicator';
   el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">お支払いが完了しました${PRICING.live ? '' : '（テスト）'}</span><span class="save-hint"> — 続きに進めます</span>`;
-  chatEl.insertBefore(el, typingEl);
+  appendToChat(el, true);
   const nextConfig = STEP_NEXT_CONFIGS[label];
   if (nextConfig) addStepNextCard(nextConfig);
-  scrollBtm();
 }
 
 // ブラウザに「このサイトのデータを消さないで」と要請する（保険・拒否されても害なし）
@@ -865,8 +863,27 @@ const typingEl = document.getElementById('typing');
 const inpEl = document.getElementById('inp');
 const stageEl = document.getElementById('stage');
 
-function scrollBtm() {
-  requestAnimationFrame(() => document.getElementById('btm').scrollIntoView({ behavior: 'smooth' }));
+// ページ全体（window）が今、下端付近にいるか。ユーザーが上にスクロールして
+// 過去ログを読んでいる最中かどうかの判定に使う。
+function isNearBottom(threshold = 150) {
+  return (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - threshold);
+}
+// force=true なら常に最下部へ（自分の発言・支払い結果など、ユーザー操作の直接の結果）。
+// force=false（既定）なら、呼び出し時点で下端付近にいた場合だけ追従する
+// （過去ログを読んでいる最中に、AIの返答で強制的に引き戻されないようにする）。
+function scrollBtm(force = false) {
+  if (!force && !isNearBottom()) return;
+  // requestAnimationFrameは使わない：バックグラウンドタブ（画面ロック時など）では
+  // コールバックが実行されず、スクロールが止まってしまうため。insertBeforeは同期処理
+  // なのでレイアウトは既に確定しており、直接呼び出しで問題ない。
+  document.getElementById('btm').scrollIntoView({ behavior: 'smooth' });
+}
+// チャットへの要素追加の共通ヘルパー。「下端付近にいたか」を追加前に判定してから追加する
+// （追加後に判定すると、追加分だけページが伸びて誤判定するため）。
+function appendToChat(el, force = false) {
+  const shouldScroll = force || isNearBottom();
+  chatEl.insertBefore(el, typingEl);
+  if (shouldScroll) scrollBtm(true);
 }
 function stageToStep(t) {
   if (!t) return 0;
@@ -885,7 +902,7 @@ function updateProgress(t) {
   });
 }
 function setStage(t) { stageEl.textContent = t; updateProgress(t); }
-function showTyping() { typingEl.classList.add('on'); scrollBtm(); }
+function showTyping() { typingEl.classList.add('on'); scrollBtm(true); }
 function hideTyping() { typingEl.classList.remove('on'); }
 
 function addMsg(role, text) {
@@ -900,8 +917,9 @@ function addMsg(role, text) {
   b.className = `bbl ${role === 'ai' ? 'ai' : 'usr'}`;
   b.innerHTML = text.replace(/\n/g, '<br>');
   m.appendChild(a); m.appendChild(b); g.appendChild(m);
-  chatEl.insertBefore(g, typingEl);
-  scrollBtm();
+  // 自分の発言は必ず最下部へ。AIの発言は、下端付近で読んでいた場合だけ追従する
+  // （過去ログを読み返している最中に、長い返答で強制的に引き戻されないように）
+  appendToChat(g, role === 'user');
 }
 
 function addChoiceBlock(choices) {
@@ -951,8 +969,7 @@ function addChoiceBlock(choices) {
 
   block.appendChild(list);
   block.appendChild(footer);
-  chatEl.insertBefore(block, typingEl);
-  scrollBtm();
+  appendToChat(block);
 }
 
 function addReflectionCard() {
@@ -965,8 +982,7 @@ function addReflectionCard() {
     <div class="rc-foot">答えに正解はありません。一緒にゆっくり整理していきましょう。</div>
     <button class="rc-next" onclick="reflectionNext(this)">考えを整理できたら — 次に進む</button>
   `;
-  chatEl.insertBefore(card, typingEl);
-  scrollBtm();
+  appendToChat(card);
 }
 
 function reflectionNext(btn) {
@@ -982,8 +998,7 @@ function addMilestoneCard() {
   card.innerHTML = `<div style="font-size:20px">📄</div>
     <div class="vb-txt"><strong>無料でのヒアリングはここまでです</strong>ここまでのまとめを、手元に残せます。</div>
     <button class="vb-btn" onclick="generateMilestone(this)">まとめを保存する</button>`;
-  chatEl.insertBefore(card, typingEl);
-  scrollBtm();
+  appendToChat(card);
 }
 
 async function generateMilestone(btn) {
@@ -1021,9 +1036,8 @@ function addVoiceBanner() {
   b.innerHTML = `<div style="font-size:20px">🎤</div>
     <div class="vb-txt"><strong>音声入力が使えます</strong>話しながら考えを整理する方が自然です。</div>
     <button class="vb-btn" id="vbtn" onclick="toggleVoice()">音声で話す</button>`;
-  chatEl.insertBefore(b, typingEl);
+  appendToChat(b);
   voiceBtn = document.getElementById('vbtn');
-  scrollBtm();
 }
 
 function parseChoices(text) {
@@ -1047,8 +1061,7 @@ function addSaveIndicator(label) {
   const el = document.createElement('div');
   el.className = 'save-ind';
   el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">${label} を保存しました</span><span class="save-hint"> — 修正・追加はいつでも話しかけてください</span>`;
-  chatEl.insertBefore(el, typingEl);
-  scrollBtm();
+  appendToChat(el);
 }
 
 function addStepNextCard(config) {
@@ -1063,8 +1076,7 @@ function addStepNextCard(config) {
     <div class="step-next-title">${config.title}</div>
     <div class="step-next-btns">${btnsHtml}</div>
   `;
-  chatEl.insertBefore(card, typingEl);
-  scrollBtm();
+  appendToChat(card);
 }
 
 function sendNextStep(btn, msg) {
@@ -1227,14 +1239,19 @@ function showResumeCard(session) {
       <button class="rs-btn rs-btn-s" onclick="confirmClear()">最初からやり直す</button>
     </div>
   `;
-  chatEl.insertBefore(card, typingEl);
-  scrollBtm();
+  appendToChat(card, true);
   window._pendingSession = session;
 }
 
 function confirmClear() {
   if (confirm('前回の対話記録を削除して、最初からやり直しますか？')) {
     clearSession();
+    // 前回の要望書・仕上げも一緒に消す（残っていると、対話の途中なのに
+    // ヘッダーの「要望書」ボタンが出てしまう）
+    try { localStorage.removeItem(REPORT_KEY); } catch(e) {}
+    try { localStorage.removeItem(EDITORIAL_KEY); } catch(e) {}
+    try { localStorage.removeItem(QA_KEY); } catch(e) {}
+    document.getElementById('rep-hdr-btn')?.classList.remove('visible');
     document.getElementById('resume-card')?.remove();
     window._pendingSession = null;
     showGuidance();
@@ -1281,7 +1298,7 @@ function resumeSession() {
   if (lastAI) addMsg('ai', cleanText(lastAI.content));
   const doneSections = session.completedSections || [];
   if (doneSections.length) maybeAddPaywall(doneSections[doneSections.length - 1]);
-  scrollBtm();
+  scrollBtm(true);
 }
 
 // 最後のメッセージにキャッシュ地点を置く：次回の呼び出しで前回までの
@@ -1536,7 +1553,7 @@ function rewindTo(histIdx) {
   history = JSON.parse(JSON.stringify(sliced));
   saveSession();
   closeRewind();
-  scrollBtm();
+  scrollBtm(true);
 }
 
 function renderMypage(json) {
