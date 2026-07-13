@@ -346,14 +346,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .rep-hdr-btn.visible{display:block}
 .rep-hdr-btn:hover{background:var(--accent-light)}
 
-/* 初回だけ「使い方」ボタンを指し示す控えめな吹き出し。
-   left と矢印位置(--arrow-x)はJS(positionHelpCoach)が実際のボタン位置から計算する。 */
-.help-coach{position:absolute;top:40px;left:0;max-width:170px;background:var(--accent-mid);color:#fff;
-  font-size:11.5px;line-height:1.6;padding:9px 12px;border-radius:10px;cursor:pointer;
-  opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .4s ease,transform .4s ease;z-index:20}
-.help-coach.show{opacity:1;transform:translateY(0);pointer-events:auto}
-.help-coach::before{content:'';position:absolute;top:-5px;left:var(--arrow-x,18px);width:10px;height:10px;background:var(--accent-mid);transform:rotate(45deg)}
-@media (prefers-reduced-motion:reduce){.help-coach{transition:opacity .01s}}
+/* 気づいてほしいボタンを、控えめな輪の点滅で知らせる（使い方＝初回のみ／要望書＝新しくできた時） */
+@keyframes hdrBtnPulse{0%{box-shadow:0 0 0 0 rgba(45,92,82,.4)}70%{box-shadow:0 0 0 7px rgba(45,92,82,0)}100%{box-shadow:0 0 0 0 rgba(45,92,82,0)}}
+.rep-hdr-btn.attn{animation:hdrBtnPulse 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.rep-hdr-btn.attn{animation:none}}
 
 /* ── マイページ ── */
 .mypage-ov{position:fixed;inset:0;background:var(--paper);z-index:90;display:none;flex-direction:column}
@@ -519,9 +515,6 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <button class="rep-hdr-btn" id="rep-hdr-btn" onclick="openBrief()">要望書</button>
       <div class="stage" id="stage">はじめに</div>
     </div>
-  </div>
-  <div class="help-coach" id="help-coach" onclick="openHelp()">
-    <div class="help-coach-txt">はじめに、進め方をご確認ください</div>
   </div>
   <nav class="prog" id="prog" aria-label="対話の進行状況">
     <div class="prog-step now"><div class="prog-dot"></div><div class="prog-lbl">はじめに</div></div>
@@ -1326,7 +1319,7 @@ function resumeSession() {
   const doneSections = session.completedSections || [];
   if (doneSections.length) maybeAddPaywall(doneSections[doneSections.length - 1]);
   scrollBtm(true);
-  maybeShowHelpCoach();
+  maybeAttnHelpBtn();
 }
 
 // 最後のメッセージにキャッシュ地点を置く：次回の呼び出しで前回までの
@@ -1512,7 +1505,9 @@ function loadReport() {
   try { const r = localStorage.getItem(REPORT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
 }
 function showRepHdrBtn() {
-  document.getElementById('rep-hdr-btn').classList.add('visible');
+  const btn = document.getElementById('rep-hdr-btn');
+  btn.classList.add('visible');
+  btn.classList.add('attn'); // 新しく要望書が出せるようになったことを、押すまで控えめに知らせる
 }
 
 function openMypage() {
@@ -1859,45 +1854,17 @@ function closeFullReport() {
 }
 
 // ── 使い方ガイド ──
-function openHelp() { document.getElementById('help-ov').classList.add('open'); dismissHelpCoach(); }
+function openHelp() { document.getElementById('help-ov').classList.add('open'); clearHelpAttn(); }
 function closeHelp() { document.getElementById('help-ov').classList.remove('open'); }
 
-// 初回だけ、「使い方」ボタンを指し示す吹き出しを出す（一度見せたら二度と出さない）
+// 初回だけ、「使い方」ボタン自体を控えめに点滅させて気づいてもらう（一度見たら二度と光らない）
 const HELP_COACH_KEY = 'mirai-no-ie-help-coach-seen';
-function maybeShowHelpCoach() {
+function maybeAttnHelpBtn() {
   try { if (localStorage.getItem(HELP_COACH_KEY)) return; } catch(e) {}
-  const coach = document.getElementById('help-coach');
-  if (!coach) return;
-  setTimeout(() => {
-    positionHelpCoach();
-    coach.classList.add('show');
-  }, 1000);
-  setTimeout(() => dismissHelpCoach(), 8000);
+  document.getElementById('help-btn')?.classList.add('attn');
 }
-// 「使い方」ボタンの実際の位置を見て、吹き出しの left と矢印の位置(--arrow-x)を合わせる。
-// ボタン群は状況（戻る/記録を保存/要望書の表示有無、ステージ表示の文字数）で並びが変わるため、
-// 固定値ではなく毎回計算する。
-function positionHelpCoach() {
-  const btn = document.getElementById('help-btn');
-  const hdr = document.querySelector('.hdr');
-  const coach = document.getElementById('help-coach');
-  if (!btn || !hdr || !coach) return;
-  const btnRect = btn.getBoundingClientRect();
-  const hdrRect = hdr.getBoundingClientRect();
-  const coachRect = coach.getBoundingClientRect();
-  const btnCenterX = btnRect.left + btnRect.width / 2 - hdrRect.left;
-  let coachLeft = btnCenterX - coachRect.width / 2;
-  coachLeft = Math.max(8, Math.min(coachLeft, hdrRect.width - coachRect.width - 8));
-  coach.style.left = coachLeft + 'px';
-  const arrowX = Math.max(8, Math.min(btnCenterX - coachLeft - 5, coachRect.width - 18));
-  coach.style.setProperty('--arrow-x', arrowX + 'px');
-  // topもボタンの実際の下端から計算する（固定値だと、ヘッダーが低い画面幅で
-  // 進捗バーに吹き出しが重なってしまうため）
-  coach.style.top = (btnRect.bottom - hdrRect.top + 10) + 'px';
-}
-function dismissHelpCoach() {
-  const coach = document.getElementById('help-coach');
-  if (coach) coach.classList.remove('show');
+function clearHelpAttn() {
+  document.getElementById('help-btn')?.classList.remove('attn');
   try { localStorage.setItem(HELP_COACH_KEY, '1'); } catch(e) {}
 }
 function switchHelpTab(tab) {
@@ -1995,6 +1962,7 @@ function _briefLoading(show, txt) {
 
 // 「要望書」ボタン → ブック体裁で開く。無ければ（or 要望更新後は）初回に生成する（②A）
 async function openBrief() {
+  document.getElementById('rep-hdr-btn')?.classList.remove('attn');
   const report = loadReport();
   if (!report) { alert('要望書データが見つかりません。'); return; }
   document.getElementById('brief-ov').classList.add('open');
@@ -2172,7 +2140,7 @@ function start() {
         addMsg('ai', q);
         setStage('家族構成を把握する');
         history.push({ role: 'assistant', content: q });
-        maybeShowHelpCoach();
+        maybeAttnHelpBtn();
       }, 800);
     }, 1200);
   }, 900);
