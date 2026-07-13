@@ -341,6 +341,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .mock-pay-btn:hover{background:var(--accent-mid)}
 .mock-pay-cancel{width:100%;background:none;border:none;color:var(--ink-light);font-size:12px;font-family:var(--sans);cursor:pointer;padding:8px}
 
+/* シェア用シートの確認 */
+.share-card{max-width:300px}
+.share-card-lede{font-size:12px;line-height:1.7;color:var(--ink-mid);margin:0 0 16px}
+.share-preview-wrap{background:var(--paper-warm);border-radius:var(--r-sm);overflow:hidden;margin-bottom:16px;min-height:120px;display:flex;align-items:center;justify-content:center;padding:8px}
+.share-preview-wrap img{display:block;width:100%;height:auto;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#share-confirm-btn:disabled{opacity:.5;cursor:default}
+
 /* ── 要望書ヘッダーボタン ── */
 .rep-hdr-btn{font-size:11px;color:var(--accent-mid);background:var(--accent-dim);border:none;padding:5px 11px;border-radius:20px;cursor:pointer;font-family:var(--sans);display:none;transition:background .15s;letter-spacing:.04em}
 .rep-hdr-btn.visible{display:block}
@@ -579,6 +586,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <div class="fullrep-nav-ttl">住まい作り要望書</div>
     <div class="brief-hdr-actions">
       <button class="brief-mini-btn" id="brief-regen-btn" onclick="regenerateBrief()">作り直す</button>
+      <button class="brief-mini-btn" onclick="openShareSheet()">シェア</button>
       <button class="fullrep-print-btn" onclick="printBrief()">印刷 / PDF保存</button>
     </div>
   </div>
@@ -589,6 +597,17 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <div class="brief-load-txt" id="brief-load-txt">要望書を仕上げています…</div>
       <div class="brief-load-sub">対話から、冊子の素材を整えています。少しお待ちください。</div>
     </div>
+  </div>
+</div>
+
+<!-- ── シェア用シートの確認 ── -->
+<div class="mock-pay-ov" id="share-ov">
+  <div class="mock-pay-card share-card">
+    <div class="mock-pay-hd">このページをシェアする</div>
+    <p class="share-card-lede">この体験が気に入ったら、このページだけ紹介してくださいませんか。氏名・日付など、あなたを特定できる情報は含まれていません。</p>
+    <div class="share-preview-wrap" id="share-preview-wrap"><div class="rep-spin"></div></div>
+    <button class="mock-pay-btn" id="share-confirm-btn" onclick="confirmShareBrief()" disabled>このページを共有する</button>
+    <button class="mock-pay-cancel" onclick="closeShareSheet()">キャンセル</button>
   </div>
 </div>
 
@@ -2021,6 +2040,81 @@ function printBrief() {
 }
 
 function closeBrief() { document.getElementById('brief-ov').classList.remove('open'); }
+
+// ── シェア用シート ──
+// 要望書の2ページ目（氏名・日付を含まない、匿名の紹介ページ）だけを画像化し、
+// 端末のネイティブ共有シートで送る。サーバーには何もアップロードしない。
+let _shareCanvas = null;
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('スクリプトの読み込みに失敗しました'));
+    document.head.appendChild(s);
+  });
+}
+
+async function openShareSheet() {
+  const frame = document.getElementById('brief-frame');
+  const shareEl = frame.contentDocument?.querySelector('.pg-share');
+  const wrap = document.getElementById('share-preview-wrap');
+  const confirmBtn = document.getElementById('share-confirm-btn');
+  if (!shareEl) { alert('要望書がまだ準備できていません。少し待ってからもう一度お試しください。'); return; }
+  _shareCanvas = null;
+  confirmBtn.disabled = true;
+  wrap.innerHTML = '<div class="rep-spin"></div>';
+  document.getElementById('share-ov').classList.add('open');
+  try {
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    // Webフォント（Google Fonts）の読み込み完了を待ってから画像化する
+    // （待たないとフォールバック書体でキャプチャされることがある）
+    try { await frame.contentDocument.fonts.ready; } catch(e) {}
+    const canvas = await html2canvas(shareEl, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    _shareCanvas = canvas;
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.alt = 'シェア用プレビュー';
+    wrap.innerHTML = '';
+    wrap.appendChild(img);
+    confirmBtn.disabled = false;
+  } catch(e) {
+    wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-light);padding:8px">プレビューの作成に失敗しました。もう一度お試しください。</p>';
+  }
+}
+
+function closeShareSheet() { document.getElementById('share-ov').classList.remove('open'); }
+
+async function confirmShareBrief() {
+  if (!_shareCanvas) return;
+  const btn = document.getElementById('share-confirm-btn');
+  btn.disabled = true;
+  _shareCanvas.toBlob(async (blob) => {
+    if (!blob) { btn.disabled = false; return; }
+    const file = new File([blob], '暮らしと住まいの要望書.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: '暮らしと住まいの要望書',
+          text: 'AIとの対話から、自分の言葉で作った住まいの要望書です。'
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = '暮らしと住まいの要望書.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      closeShareSheet();
+    } catch(e) {
+      // ユーザーがシェアをキャンセルした場合は何もしない
+    } finally {
+      btn.disabled = false;
+    }
+  }, 'image/png');
+}
 
 function renderFullReport(json, qaText) {
   const page = document.getElementById('fullrep-page');
