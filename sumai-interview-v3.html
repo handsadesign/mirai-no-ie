@@ -221,6 +221,15 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 #brief-ov .fullrep-print-btn{white-space:nowrap}
 #brief-ov .fullrep-nav-ttl{flex:1;min-width:0;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px}
 #brief-ov .fullrep-back{flex-shrink:0;white-space:nowrap}
+@media(max-width:480px){
+  /* 戻る＋タイトル＋3ボタンが1行に詰まって混雑するため、狭い画面ではタイトルを省き
+     ボタンをコンパクトにする（戻るボタンとアクション群だけで用は足りる） */
+  #brief-ov .fullrep-nav-ttl{display:none}
+  #brief-ov .fullrep-hdr{padding:12px 14px}
+  #brief-ov .brief-hdr-actions{gap:6px}
+  #brief-ov .brief-mini-btn{padding:7px 10px;font-size:11px}
+  #brief-ov .fullrep-print-btn{padding:7px 11px;font-size:11px}
+}
 .brief-body{flex:1;position:relative;overflow:hidden;background:#e9e4d8}
 .brief-frame{display:block;width:100%;max-width:576px;height:100%;margin:0 auto;border:none;background:#fff;box-shadow:0 0 24px rgba(0,0,0,.08)}
 .brief-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--paper);padding:24px}
@@ -680,7 +689,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260713204338"></script>
+<script src="brief_render.js?v=20260713205004"></script>
 
 <script>
 // ── API接続設定 ──
