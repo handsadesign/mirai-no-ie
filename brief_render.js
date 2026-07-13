@@ -31,6 +31,7 @@
 
   var APP_MARK = 'みらいの家 — mirai no ie';
   var SHARE_URL = 'handsadesign.github.io/mirai-no-ie/sumai-interview-v3.html';
+  var SHARE_TAGLINE = '専門家に会う前に、自分の言葉で暮らしを整理する時間。';
 
   // 質感ページの「避けたいもの」は一般的な傾向。materials未生成時のフォールバック。
   var AVOID_FALLBACK = ['鮮やかすぎる色', '細かすぎるデザイン', '強すぎるアクセント', '主張の強すぎるもの'];
@@ -133,21 +134,28 @@
       return qs.slice(0, 4);
     }
     function shareToc() {
-      var toc = ['住まいづくりの目的', '住まい手', '一日の流れ', '大切にしたいこと'];
-      if (THEMES.length) toc.push('設計テーマ（' + THEMES.length + '件）');
-      toc.push('部屋別の要件', '対話の記録');
-      return toc;
+      return ['住まいづくりの目的', '住まい手', '一日の流れ', '大切にしたいこと', '部屋別の要件', '対話の記録'];
+    }
+    function shareThemeNames() {
+      return THEMES.map(function (t) { return t[1]; }).filter(Boolean);
     }
     function sharePage() {
       var quotesHtml = shareQuotes().map(function (q) {
         return '<blockquote class="share-q">' + esc(q) + '</blockquote>';
       }).join('');
       var tocHtml = lines(shareToc(), 'share-toc');
+      var themeNames = shareThemeNames();
+      var themeHtml = themeNames.length ?
+        '<div class="share-tocwrap"><div class="share-toc-lbl">大切な' + themeNames.length + 'つのテーマ</div>' +
+        lines(themeNames, 'share-toc') + '</div>' : '';
       var inner =
         '<h1 class="share-ttl">暮らしと住まい<br>の要望書</h1>' +
         '<p class="share-lede">この要望書はAIとの対話から<br>本人の言葉をもとに作成されました。</p>' +
         '<div class="share-quotes">' + quotesHtml + '</div>' +
         '<div class="share-tocwrap"><div class="share-toc-lbl">目次</div>' + tocHtml + '</div>' +
+        themeHtml +
+        '<div class="share-appeal"><div class="share-appeal-name">住まいの対話</div>' +
+        '<div class="share-appeal-tag">' + esc(SHARE_TAGLINE) + '</div></div>' +
         '<div class="share-url">' + esc(SHARE_URL) + '</div>';
       return page('', inner, 'share');
     }
@@ -334,8 +342,8 @@
 "@page pg-statement{@bottom-left{content:none}@bottom-right{content:none}}\n" +
 "@page pg-share{@bottom-left{content:none}@bottom-right{content:none}}\n" +
 "html{color:var(--ink);}\n*{box-sizing:border-box;}\n.page{page-break-after:always;}\n.pg-cover{page:pg-cover;}\n.pg-statement{page:pg-statement;}\n.pg-share{page:pg-share;}\n" +
-".ph,.th-jp,.q,.about-h,.about-p,.lede,.val-t,.val-e,.val-q,.th-framing,.stmt,.cover-jp,.pri-tier,.room-name,.mat-lab,.th-lab,.share-ttl,.share-q{font-family:'Lora','Noto Serif JP',serif;}\n" +
-".kicker,.folio-index,.itemlist,.facts,.reqlist,.matlist,.prilist,.memolist,.biglist,.tl-t,.tl-d,.tl-note,.nx-t,.nx-d,.val-n,.th-en,.cover-en,.th-list,.cover-name,.cover-date,.cover-mark,.stmt-en,.stmt-mark,.room-e,.val,.nexts,.share-lede,.share-toc,.share-toc-lbl,.share-url{font-family:'Noto Sans JP',sans-serif;}\n" +
+".ph,.th-jp,.q,.about-h,.about-p,.lede,.val-t,.val-e,.val-q,.th-framing,.stmt,.cover-jp,.pri-tier,.room-name,.mat-lab,.th-lab,.share-ttl,.share-q,.share-appeal-name{font-family:'Lora','Noto Serif JP',serif;}\n" +
+".kicker,.folio-index,.itemlist,.facts,.reqlist,.matlist,.prilist,.memolist,.biglist,.tl-t,.tl-d,.tl-note,.nx-t,.nx-d,.val-n,.th-en,.cover-en,.th-list,.cover-name,.cover-date,.cover-mark,.stmt-en,.stmt-mark,.room-e,.val,.nexts,.share-lede,.share-toc,.share-toc-lbl,.share-url,.share-appeal-tag{font-family:'Noto Sans JP',sans-serif;}\n" +
 ".kickrow{display:block;margin-bottom:12mm;}\n.kicker{font-size:7.5pt;letter-spacing:3.4pt;color:var(--clay);font-weight:500;text-transform:uppercase;}\n" +
 ".folio-index{font-family:'Lora';font-size:9pt;color:var(--faint);letter-spacing:1pt;margin-right:8pt;}\n" +
 "h1.ph{font-weight:300;font-size:23pt;letter-spacing:.5pt;line-height:1.3;margin:0 0 9mm 0;color:var(--ink);}\n" +
@@ -384,16 +392,19 @@
 ".stmt{font-weight:300;font-size:16pt;line-height:2.4;color:var(--ink);letter-spacing:.5pt;margin:0;}\n" +
 ".stmt-mark{margin-top:20mm;font-size:7.5pt;letter-spacing:1.5pt;color:var(--faint);}\n" +
 ".pg-share{padding-top:2mm;}\n" +
-".share-ttl{font-weight:300;font-size:21pt;letter-spacing:1pt;line-height:1.35;color:var(--ink);margin:0 0 5mm 0;}\n" +
-".share-lede{font-size:9pt;line-height:1.7;color:var(--ink2);font-weight:400;margin:0 0 7mm 0;}\n" +
-".share-quotes{border-top:.8pt solid var(--hair);padding-top:5mm;margin-bottom:7mm;}\n" +
-".share-q{font-weight:400;font-size:10.2pt;line-height:1.55;color:var(--ink);margin:0 0 3.5mm 0;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
-".share-tocwrap{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:6mm;}\n" +
-".share-toc-lbl{font-size:8pt;letter-spacing:2.5pt;text-transform:uppercase;color:var(--clay);font-weight:500;margin-bottom:4mm;}\n" +
+".share-ttl{font-weight:300;font-size:20pt;letter-spacing:1pt;line-height:1.32;color:var(--ink);margin:0 0 4mm 0;}\n" +
+".share-lede{font-size:8.6pt;line-height:1.6;color:var(--ink2);font-weight:400;margin:0 0 5mm 0;}\n" +
+".share-quotes{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:5mm;}\n" +
+".share-q{font-weight:400;font-size:9.6pt;line-height:1.45;color:var(--ink);margin:0 0 2.6mm 0;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
+".share-tocwrap{border-top:.8pt solid var(--hair);padding-top:3mm;margin-bottom:4mm;}\n" +
+".share-toc-lbl{font-size:7.6pt;letter-spacing:2.2pt;text-transform:uppercase;color:var(--clay);font-weight:500;margin-bottom:2.8mm;}\n" +
 ".share-toc{column-count:2;column-gap:8mm;}\n" +
-".share-toc li{font-size:8.8pt;line-height:1.9;color:var(--ink2);font-weight:300;padding-left:5mm;text-indent:-5mm;break-inside:avoid;}\n" +
+".share-toc li{font-size:8.3pt;line-height:1.7;color:var(--ink2);font-weight:300;padding-left:5mm;text-indent:-5mm;break-inside:avoid;}\n" +
 ".share-toc li::before{content:'—';color:var(--clay);margin-right:2.5mm;}\n" +
-".share-url{font-size:8pt;letter-spacing:.5pt;color:var(--faint);}\n" +
+".share-appeal{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:4mm;}\n" +
+".share-appeal-name{font-size:11pt;color:var(--ink);margin-bottom:1.5mm;}\n" +
+".share-appeal-tag{font-size:8pt;line-height:1.6;color:var(--ink2);}\n" +
+".share-url{font-size:7.6pt;letter-spacing:.5pt;color:var(--faint);}\n" +
 ".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:6mm;}\n" +
 ".tx-q{font-family:'Noto Sans JP',sans-serif;font-size:8.4pt;line-height:1.7;color:var(--faint);font-weight:400;margin-bottom:2mm;}\n" +
 ".tx-a{font-family:'Lora','Noto Serif JP',serif;font-size:10pt;line-height:1.85;color:var(--ink);font-weight:400;padding-left:5mm;border-left:1pt solid var(--hair);}\n";
