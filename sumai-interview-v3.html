@@ -51,8 +51,14 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .mg{margin-bottom:20px}
 .msg{display:flex;gap:10px;align-items:flex-start}
 .av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;margin-top:2px}
-.av.ai{background:var(--accent-light);color:var(--accent-mid);font-family:var(--serif)}
+.av.ai{background:var(--accent-light);color:var(--accent-mid);font-family:var(--serif);gap:2.5px}
 .av.usr{background:var(--paper-warm);color:var(--ink-mid)}
+.av.ai .dot,.tav .dot{width:4px;height:4px;border-radius:50%;background:var(--accent-mid);opacity:.5}
+.av.ai.animate .dot,.tav .dot{animation:avDot 1.4s ease-in-out infinite}
+.av.ai.animate .dot:nth-child(2),.tav .dot:nth-child(2){animation-delay:.2s}
+.av.ai.animate .dot:nth-child(3),.tav .dot:nth-child(3){animation-delay:.4s}
+@keyframes avDot{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.35);opacity:1}}
+@media (prefers-reduced-motion:reduce){.av.ai.animate .dot,.tav .dot{animation:none;opacity:.85}}
 .bbl{padding:11px 15px;border-radius:var(--r);font-size:14px;line-height:1.9;max-width:480px}
 .bbl.ai{background:var(--paper-card);color:var(--ink);border:1px solid var(--ink-faint);border-radius:4px var(--r) var(--r) var(--r)}
 .bbl.usr{background:var(--accent);color:#fff;border-radius:var(--r) 4px var(--r) var(--r);margin-left:auto;font-weight:300}
@@ -61,7 +67,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 /* typing */
 .typing{display:flex;gap:10px;align-items:center;margin-bottom:8px;opacity:0;transition:opacity .3s}
 .typing.on{opacity:1}
-.tav{width:30px;height:30px;border-radius:50%;background:var(--accent-light);color:var(--accent-mid);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:12px;flex-shrink:0}
+.tav{width:30px;height:30px;border-radius:50%;background:var(--accent-light);color:var(--accent-mid);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:12px;flex-shrink:0;gap:2.5px}
 .dots{background:var(--paper-card);border:1px solid var(--ink-faint);border-radius:4px var(--r) var(--r) var(--r);padding:12px 16px;display:flex;gap:5px;align-items:center}
 .dots span{width:5px;height:5px;border-radius:50%;background:var(--ink-faint);animation:blink 1.2s infinite}
 .dots span:nth-child(2){animation-delay:.2s}
@@ -517,7 +523,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 <main class="chat" id="chat">
   <div class="typing" id="typing">
-    <div class="tav">間</div>
+    <div class="tav"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <div class="dots"><span></span><span></span><span></span></div>
   </div>
   <div id="btm"></div>
@@ -880,10 +886,12 @@ function scrollBtm(force = false) {
 }
 // チャットへの要素追加の共通ヘルパー。「下端付近にいたか」を追加前に判定してから追加する
 // （追加後に判定すると、追加分だけページが伸びて誤判定するため）。
+// スクロール先は「#btm（絶対最下部）」ではなく「追加した要素自体の先頭」。
+// 長いAI返答が来たとき、返答の末尾まで一気に飛ばず、頭から読めるようにするため。
 function appendToChat(el, force = false) {
   const shouldScroll = force || isNearBottom();
   chatEl.insertBefore(el, typingEl);
-  if (shouldScroll) scrollBtm(true);
+  if (shouldScroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function stageToStep(t) {
   if (!t) return 0;
@@ -912,7 +920,14 @@ function addMsg(role, text) {
   m.className = `msg ${role === 'ai' ? '' : 'usr'}`;
   const a = document.createElement('div');
   a.className = `av ${role === 'ai' ? 'ai' : 'usr'}`;
-  a.textContent = role === 'ai' ? '間' : '私';
+  if (role === 'ai') {
+    // 「聞いている」動きは常に最新のAI発言だけ。それ以前のアバターは止める
+    document.querySelectorAll('.av.ai.animate').forEach(el => el.classList.remove('animate'));
+    a.classList.add('animate');
+    a.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  } else {
+    a.textContent = '私';
+  }
   const b = document.createElement('div');
   b.className = `bbl ${role === 'ai' ? 'ai' : 'usr'}`;
   b.innerHTML = text.replace(/\n/g, '<br>');
