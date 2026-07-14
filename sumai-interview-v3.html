@@ -689,7 +689,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260713230149"></script>
+<script src="brief_render.js?v=20260714171425"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1367,7 +1367,7 @@ async function callClaude(userMsg) {
     method: 'POST',
     headers: apiHeaders(),
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 1000,
       messages: withCache(history)
     })
