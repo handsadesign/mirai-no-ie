@@ -231,7 +231,7 @@
       // 本人が語ったものだけを載せる。語られていない列は出さず、両方なければページごと省く（代弁NG）。
       var mat = ed.materials || {};
       var keep = (mat.keep && mat.keep.length) ? mat.keep : items('aesthetics');
-      var avoid = (mat.avoid && mat.avoid.length) ? mat.avoid : [];
+      var avoid = (mat.avoid && mat.avoid.length) ? mat.avoid : items('aesthetics_avoid');
       if (!keep.length && !avoid.length) return '';
       var cols = '';
       if (keep.length) cols += '<div class="mat-col"><div class="mat-lab">目指す質感</div>' + lines(keep, 'matlist') + '</div>';
