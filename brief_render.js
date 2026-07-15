@@ -119,16 +119,20 @@
     // 具体的な困りごと等）は一切含めない。目的・価値観・宣言という、
     // 一般的な内容になりやすいフィールドだけから機械的に組み立てる。
     function shareQuotes() {
+      // 同じ言葉が複数フィールドに載っていることがある（purpose_quoteと
+      // valuesの引用が一致する等）ため、追加時に重複を除く。
       var qs = [];
-      if (Q_PURPOSE) qs.push(Q_PURPOSE);
-      VALUES.forEach(function (v) { if (qs.length < 4 && v[2]) qs.push(v[2]); });
-      if (qs.length < 4 && STATEMENT) qs.push(STATEMENT);
-      THEMES.forEach(function (t) {
-        if (qs.length >= 4) return;
-        var wish = t[4] || [];
-        if (wish[0]) qs.push(wish[0]);
-      });
-      return qs.slice(0, 4);
+      function add(t) {
+        if (qs.length >= 4 || !t) return;
+        var s = String(t).trim();
+        if (!s || qs.indexOf(s) !== -1) return;
+        qs.push(s);
+      }
+      add(Q_PURPOSE);
+      VALUES.forEach(function (v) { add(v[2]); });
+      add(STATEMENT);
+      THEMES.forEach(function (t) { add((t[4] || [])[0]); });
+      return qs;
     }
     function shareToc() {
       return ['住まいづくりの目的', '住まい手', '一日の流れ', '大切にしたいこと', '部屋別の要件', '対話の記録'];
@@ -392,7 +396,7 @@
 ".stmt-mark{margin-top:20mm;font-size:7.5pt;letter-spacing:1.5pt;color:var(--faint);}\n" +
 ".pg-share{padding-top:2mm;}\n" +
 ".share-ttl{font-weight:300;font-size:14pt;letter-spacing:1pt;line-height:1.4;color:var(--ink);margin:0 0 3mm 0;}\n" +
-".share-lede{font-size:8.6pt;line-height:1.6;color:var(--ink2);font-weight:400;margin:0 0 5mm 0;}\n" +
+".share-lede{font-size:9.5pt;line-height:1.6;color:var(--ink2);font-weight:400;margin:0 0 5mm 0;}\n" +
 ".share-quotes{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:5mm;}\n" +
 ".share-q{font-weight:400;font-size:8.8pt;line-height:1.5;color:var(--ink);margin:0 0 2.4mm 0;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
 ".share-tocwrap{border-top:.8pt solid var(--hair);padding-top:3mm;margin-bottom:4mm;}\n" +
@@ -402,8 +406,8 @@
 ".share-toc li::before{content:'—';color:var(--clay);margin-right:2.5mm;}\n" +
 ".share-appeal{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:4mm;}\n" +
 ".share-appeal-name{font-size:9.5pt;color:var(--ink);margin-bottom:1.5mm;}\n" +
-".share-appeal-tag{font-size:8pt;line-height:1.6;color:var(--ink2);}\n" +
-".share-url{font-size:7.6pt;letter-spacing:.5pt;color:var(--faint);}\n" +
+".share-appeal-tag{font-size:9pt;line-height:1.6;color:var(--ink2);}\n" +
+".share-url{font-size:9.5pt;letter-spacing:.5pt;color:var(--clay);}\n" +
 ".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:6mm;}\n" +
 ".tx-q{font-family:'Noto Sans JP',sans-serif;font-size:8.4pt;line-height:1.7;color:var(--faint);font-weight:400;margin-bottom:2mm;}\n" +
 ".tx-a{font-family:'Lora','Noto Serif JP',serif;font-size:10pt;line-height:1.85;color:var(--ink);font-weight:400;padding-left:5mm;border-left:1pt solid var(--hair);}\n";
