@@ -30,7 +30,7 @@
     'その一つひとつが、これからの住まいの輪郭を、少しずつ確かなものにしていきます。';
 
   var APP_MARK = 'みらいの家 — mirai no ie';
-  var SHARE_URL = 'handsadesign.github.io/mirai-no-ie/sumai-interview-v3.html';
+  var SHARE_URL = 'sumai-dialogue.com';
   var SHARE_TAGLINE = '専門家に会う前に、自分の言葉で暮らしを整理する時間。';
 
   // 質感ページの「避けたいもの」は一般的な傾向。materials未生成時のフォールバック。
