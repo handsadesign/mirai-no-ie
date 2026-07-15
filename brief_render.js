@@ -33,9 +33,6 @@
   var SHARE_URL = 'sumai-dialogue.com';
   var SHARE_TAGLINE = '専門家に会う前に、自分の言葉で暮らしを整理する時間。';
 
-  // 質感ページの「避けたいもの」は一般的な傾向。materials未生成時のフォールバック。
-  var AVOID_FALLBACK = ['鮮やかすぎる色', '細かすぎるデザイン', '強すぎるアクセント', '主張の強すぎるもの'];
-
   // ── HTMLヘルパ ──────────────────────────────────────────────────────────────
   function esc(s) {
     return String(s == null ? '' : s)
@@ -149,8 +146,8 @@
         '<div class="share-tocwrap"><div class="share-toc-lbl">大切な' + themeNames.length + 'つのテーマ</div>' +
         lines(themeNames, 'share-toc') + '</div>' : '';
       var inner =
-        '<h1 class="share-ttl">暮らしと住まい<br>の要望書</h1>' +
-        '<p class="share-lede">この要望書はAIとの対話から<br>本人の言葉をもとに作成されました。</p>' +
+        '<h1 class="share-ttl">暮らしと住まいの要望書</h1>' +
+        '<p class="share-lede">この要望書はAIとの対話から本人の言葉をもとに作成されました。</p>' +
         '<div class="share-quotes">' + quotesHtml + '</div>' +
         '<div class="share-tocwrap"><div class="share-toc-lbl">目次</div>' + tocHtml + '</div>' +
         themeHtml +
@@ -231,15 +228,17 @@
       return pagesHtml.join('');
     }
     function aesthetics() {
+      // 本人が語ったものだけを載せる。語られていない列は出さず、両方なければページごと省く（代弁NG）。
       var mat = ed.materials || {};
       var keep = (mat.keep && mat.keep.length) ? mat.keep : items('aesthetics');
-      var avoid = (mat.avoid && mat.avoid.length) ? mat.avoid : AVOID_FALLBACK;
+      var avoid = (mat.avoid && mat.avoid.length) ? mat.avoid : [];
+      if (!keep.length && !avoid.length) return '';
+      var cols = '';
+      if (keep.length) cols += '<div class="mat-col"><div class="mat-lab">目指す質感</div>' + lines(keep, 'matlist') + '</div>';
+      if (avoid.length) cols += '<div class="mat-col"><div class="mat-lab">避けたいもの</div>' + lines(avoid, 'matlist') + '</div>';
       var body = kicker('MATERIAL', '06') +
         '<h1 class="ph">質感と好み</h1>' +
-        '<div class="mat-cols">' +
-          '<div class="mat-col"><div class="mat-lab">目指す質感</div>' + lines(keep, 'matlist') + '</div>' +
-          '<div class="mat-col"><div class="mat-lab">避けたいもの</div>' + lines(avoid, 'matlist') + '</div>' +
-        '</div>';
+        '<div class="mat-cols">' + cols + '</div>';
       return page('MATERIAL', body);
     }
     function designerMemo() {
@@ -392,17 +391,17 @@
 ".stmt{font-weight:300;font-size:16pt;line-height:2.4;color:var(--ink);letter-spacing:.5pt;margin:0;}\n" +
 ".stmt-mark{margin-top:20mm;font-size:7.5pt;letter-spacing:1.5pt;color:var(--faint);}\n" +
 ".pg-share{padding-top:2mm;}\n" +
-".share-ttl{font-weight:300;font-size:20pt;letter-spacing:1pt;line-height:1.32;color:var(--ink);margin:0 0 4mm 0;}\n" +
+".share-ttl{font-weight:300;font-size:14pt;letter-spacing:1pt;line-height:1.4;color:var(--ink);margin:0 0 3mm 0;}\n" +
 ".share-lede{font-size:8.6pt;line-height:1.6;color:var(--ink2);font-weight:400;margin:0 0 5mm 0;}\n" +
 ".share-quotes{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:5mm;}\n" +
-".share-q{font-weight:400;font-size:9.6pt;line-height:1.45;color:var(--ink);margin:0 0 2.6mm 0;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
+".share-q{font-weight:400;font-size:8.8pt;line-height:1.5;color:var(--ink);margin:0 0 2.4mm 0;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
 ".share-tocwrap{border-top:.8pt solid var(--hair);padding-top:3mm;margin-bottom:4mm;}\n" +
 ".share-toc-lbl{font-size:7.6pt;letter-spacing:2.2pt;text-transform:uppercase;color:var(--clay);font-weight:500;margin-bottom:2.8mm;}\n" +
-".share-toc{column-count:2;column-gap:8mm;}\n" +
+".share-toc{column-count:1;}\n" +
 ".share-toc li{font-size:8.3pt;line-height:1.7;color:var(--ink2);font-weight:300;padding-left:5mm;text-indent:-5mm;break-inside:avoid;}\n" +
 ".share-toc li::before{content:'—';color:var(--clay);margin-right:2.5mm;}\n" +
 ".share-appeal{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:4mm;}\n" +
-".share-appeal-name{font-size:11pt;color:var(--ink);margin-bottom:1.5mm;}\n" +
+".share-appeal-name{font-size:9.5pt;color:var(--ink);margin-bottom:1.5mm;}\n" +
 ".share-appeal-tag{font-size:8pt;line-height:1.6;color:var(--ink2);}\n" +
 ".share-url{font-size:7.6pt;letter-spacing:.5pt;color:var(--faint);}\n" +
 ".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:6mm;}\n" +
