@@ -143,7 +143,8 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 /* input */
 .inp-wrap{position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--ink-faint);padding:12px 16px 16px}
 .inp-inner{max-width:640px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
-.inp{flex:1;background:var(--paper-card);border:1px solid var(--ink-faint);border-radius:var(--r);padding:10px 14px;font-size:14px;font-family:var(--sans);font-weight:300;color:var(--ink);resize:none;min-height:44px;max-height:120px;line-height:1.6;outline:none;transition:border-color .2s}
+/* font-sizeは16px以上を維持すること。16px未満だとiOS Safariがフォーカス時に画面を自動ズームし、横スクロールが発生する */
+.inp{flex:1;background:var(--paper-card);border:1px solid var(--ink-faint);border-radius:var(--r);padding:10px 14px;font-size:16px;font-family:var(--sans);font-weight:300;color:var(--ink);resize:none;min-height:44px;max-height:120px;line-height:1.6;outline:none;transition:border-color .2s}
 .inp:focus{border-color:var(--accent)}
 .inp::placeholder{color:var(--ink-faint)}
 .send{width:40px;height:40px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;transition:all .15s}
@@ -173,7 +174,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .apikey-card{background:var(--paper-card);border-radius:var(--r);max-width:480px;width:100%;padding:28px 24px}
 .apikey-ttl{font-family:var(--serif);font-size:17px;font-weight:400;margin-bottom:8px}
 .apikey-desc{font-size:13px;color:var(--ink-mid);line-height:1.8;margin-bottom:20px}
-.apikey-inp{width:100%;border:1px solid var(--ink-faint);border-radius:var(--r-sm);padding:10px 14px;font-size:13px;font-family:var(--sans);color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:12px}
+.apikey-inp{width:100%;border:1px solid var(--ink-faint);border-radius:var(--r-sm);padding:10px 14px;font-size:16px;font-family:var(--sans);color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:12px}
 .apikey-inp:focus{border-color:var(--accent)}
 .apikey-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 20px;font-size:13px;font-family:var(--sans);cursor:pointer;width:100%;transition:background .15s}
 .apikey-btn:hover{background:var(--accent-mid)}
@@ -674,7 +675,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260716133035"></script>
+<script src="brief_render.js?v=20260717063249"></script>
 
 <script>
 // ── API接続設定 ──
