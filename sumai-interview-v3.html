@@ -329,6 +329,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .paygate-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:12px 32px;font-size:14px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;transition:background .2s}
 .paygate-btn:hover{background:var(--accent-mid)}
 .paygate-note{font-size:10px;color:var(--ink-light);margin-top:10px}
+.restore-link{text-decoration:underline;text-underline-offset:2px;cursor:pointer;color:var(--ink-mid)}
 /* テスト決済画面 */
 .mock-pay-ov{position:fixed;inset:0;background:rgba(26,26,24,.45);z-index:400;display:none;align-items:center;justify-content:center;padding:24px}
 .mock-pay-ov.open{display:flex}
@@ -675,7 +676,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260717063249"></script>
+<script src="brief_render.js?v=20260718131204"></script>
 
 <script>
 // ── API接続設定 ──
@@ -765,6 +766,37 @@ const PRICING = {
   ],
 };
 
+// ── 料金の取得（Workerの/pricingが料金のマスター。届かない場合は上の既定値で表示）──
+const RECEIPT_KEY = 'mirai-no-ie-receipt-v1';
+let PRICE_INFO = null;
+function getReceipt() {
+  try { return JSON.parse(localStorage.getItem(RECEIPT_KEY)); } catch(e) { return null; }
+}
+// 開始日の署名をWorkerから受け取る（期間跨ぎの料金据え置き用。日付だけで個人情報なし）
+async function ensureReceipt() {
+  if (!PROXY_URL || getReceipt()) return;
+  try {
+    const res = await fetch(PROXY_URL + '/receipt', { method: 'POST' });
+    const j = await res.json();
+    if (j.date) localStorage.setItem(RECEIPT_KEY, JSON.stringify(j));
+  } catch(e) {}
+}
+async function loadPricing() {
+  if (!PROXY_URL) return;
+  try {
+    const rc = getReceipt();
+    const q = (rc && rc.sig) ? `?start=${rc.date}&sig=${rc.sig}` : '';
+    const res = await fetch(PROXY_URL + '/pricing' + q);
+    const j = await res.json();
+    if (!j.applicable) return;
+    PRICE_INFO = j;
+    PRICING.live = !!j.live;
+    PRICING.stages.forEach(s => {
+      if (s.after && j.applicable.prices[s.after] != null) s.price = j.applicable.prices[s.after];
+    });
+  } catch(e) {}
+}
+
 function buildPricingPage() {
   const rows = document.getElementById('pricing-rows');
   rows.innerHTML = PRICING.stages.map(s => `
@@ -778,7 +810,12 @@ function buildPricingPage() {
     </div>`).join('');
   const total = PRICING.stages.reduce((a, s) => a + s.price, 0);
   let note = `すべて進んだ場合の合計は ¥${total.toLocaleString()} です。お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。`;
+  if (PRICE_INFO && PRICE_INFO.applicable && PRICE_INFO.applicable.id !== 'regular') {
+    const until = PRICE_INFO.applicable.until;
+    note += `<br>現在は<strong>${PRICE_INFO.applicable.label}</strong>が適用されています${until ? `（${until.replace(/-/g, '/')}まで）` : ''}。この期間に始めた方は、期間が終わってもこの価格のまま最後まで進めます。`;
+  }
   if (!PRICING.live) note += '<br>※現在はテスト公開中のため、実際のお支払いはまだ発生しません。';
+  if (PRICING.live) note += `<br><span class="restore-link" onclick="redeemRestoreCode()">購入復元コードをお持ちの方はこちら</span>`;
   document.getElementById('pricing-note').innerHTML = note;
 }
 
@@ -793,9 +830,10 @@ const PAY_KEY = 'mirai-no-ie-paid-v08';
 function getPaid() {
   try { return JSON.parse(localStorage.getItem(PAY_KEY)) || {}; } catch(e) { return {}; }
 }
-function setPaid(afterLabel) {
+function setPaid(afterLabel, sessionId) {
   const p = getPaid();
-  p[afterLabel] = new Date().toISOString();
+  // sid = Stripeのセッションid（購入復元コードを兼ねる）。モック決済ではnull
+  p[afterLabel] = { at: new Date().toISOString(), sid: sessionId || null };
   try { localStorage.setItem(PAY_KEY, JSON.stringify(p)); } catch(e) {}
 }
 
@@ -811,14 +849,55 @@ function maybeAddPaywall(label) {
     <div class="paygate-ttl">${stage.label}</div>
     <div class="paygate-desc">${stage.desc}</div>
     <div class="paygate-price">¥${stage.price.toLocaleString()}</div>
-    <button class="paygate-btn" onclick="openMockCheckout('${label}')">支払って進む</button>
-    ${PRICING.live ? '' : '<div class="paygate-note">※テスト公開中のため、実際の請求は発生しません</div>'}
+    <button class="paygate-btn" onclick="openCheckout('${label}')">支払って進む</button>
+    ${PRICING.live
+      ? `<div class="paygate-note"><span class="restore-link" onclick="redeemRestoreCode()">購入復元コードをお持ちの方はこちら</span></div>`
+      : '<div class="paygate-note">※テスト公開中のため、実際の請求は発生しません</div>'}
   `;
   appendToChat(card, true);
   return true;
 }
 
-// テスト用の決済画面（本番ではStripeのチェックアウトに置き換える）
+// 決済の入口。live=falseの間はモック、liveならStripe Checkoutへ遷移する
+async function openCheckout(label) {
+  if (!PRICING.live) { openMockCheckout(label); return; }
+  try {
+    const res = await fetch(PROXY_URL + '/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: label, receipt: getReceipt() }),
+    });
+    const j = await res.json();
+    if (j.url) { location.href = j.url; return; }
+    alert(j.error?.message || '決済画面を開けませんでした。もう一度お試しください。');
+  } catch(e) {
+    alert('決済画面を開けませんでした。通信環境をご確認のうえ、もう一度お試しください。');
+  }
+}
+
+// 支払いをWorker経由でStripeに照会し、確認できたら解錠する
+async function verifyPurchase(sessionId) {
+  const res = await fetch(PROXY_URL + '/verify?session_id=' + encodeURIComponent(sessionId));
+  const j = await res.json();
+  if (j.paid && j.tier) {
+    setPaid(j.tier, sessionId);
+    sendEvent('pay-' + j.tier);
+    return j;
+  }
+  throw new Error(j.error?.message || 'お支払いが確認できませんでした。');
+}
+
+// 購入復元コード（Stripeのセッションid）で、端末が変わっても解錠できる
+function redeemRestoreCode() {
+  const sid = prompt('購入復元コードを入力してください（cs_ で始まる英数字です）');
+  if (!sid) return;
+  verifyPurchase(sid.trim()).then(() => {
+    alert('お支払いを確認しました。続きに進めます。');
+    location.reload();
+  }).catch(e => alert(e.message));
+}
+
+// テスト用の決済画面（live=falseの間だけ使われる）
 function openMockCheckout(label) {
   const stage = PRICING.stages.find(s => s.after === label);
   document.getElementById('mock-pay-item').textContent = `住まいの対話 — ${stage.label}`;
@@ -864,6 +943,7 @@ function sendEvent(name) {
 
 function startSession() {
   try { localStorage.setItem('mirai-no-ie-consent', JSON.stringify({ agreedAt: new Date().toISOString(), pricing: PRICING.stages.map(s => s.price) })); } catch(e) {}
+  ensureReceipt();  // 開始日の署名（期間跨ぎの料金据え置き用）
   const ov = document.getElementById('pricing-ov');
   ov.classList.add('hidden');
   setTimeout(() => { ov.classList.remove('show'); }, 500);
@@ -1220,6 +1300,9 @@ async function exportSession() {
     session: JSON.parse(raw),
     report,
     qa: localStorage.getItem(QA_KEY) || null,
+    // 支払い状態（復元コード含む）と開始日の署名も控えに含める（機種変・データ消失対策）
+    pay: localStorage.getItem(PAY_KEY) || null,
+    receipt: localStorage.getItem(RECEIPT_KEY) || null,
   };
   const d = new Date();
   const name = `住まいの対話_記録_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
@@ -1236,6 +1319,8 @@ function importSessionFile(file) {
       localStorage.setItem(SESSION_KEY, JSON.stringify(b.session));
       if (b.report) localStorage.setItem(REPORT_KEY, JSON.stringify(b.report));
       if (b.qa) localStorage.setItem(QA_KEY, b.qa);
+      if (b.pay) localStorage.setItem(PAY_KEY, b.pay);
+      if (b.receipt) localStorage.setItem(RECEIPT_KEY, b.receipt);
       location.reload();
     } catch(e) {
       alert('記録ファイルを読み込めませんでした。「住まいの対話」で保存したファイルかご確認ください。');
@@ -1327,7 +1412,13 @@ function resumeSession() {
   const lastAI = [...history].reverse().find(m => m.role === 'assistant');
   if (lastAI) addMsg('ai', cleanText(lastAI.content));
   const doneSections = session.completedSections || [];
-  if (doneSections.length) maybeAddPaywall(doneSections[doneSections.length - 1]);
+  if (doneSections.length) {
+    const last = doneSections[doneSections.length - 1];
+    const gated = maybeAddPaywall(last);
+    // 支払い済みなのに次ステップの案内が無いと行き止まりになる
+    // （Stripeから戻って再読込した直後がまさにこの状態）
+    if (!gated && getPaid()[last] && STEP_NEXT_CONFIGS[last]) addStepNextCard(STEP_NEXT_CONFIGS[last]);
+  }
   scrollBtm(true);
   maybeAttnHelpBtn();
 }
@@ -2178,7 +2269,7 @@ function start() {
   }, 900);
 }
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   if (/Line\/|Instagram|FBAV|FBAN/.test(navigator.userAgent)) {
     const b = document.createElement('div');
     b.className = 'inapp-banner';
@@ -2186,17 +2277,42 @@ window.addEventListener('load', () => {
     document.body.appendChild(b);
   }
   if (loadReport()) showRepHdrBtn();
+
+  // 料金をWorkerから取得（失敗しても既定値で動く）
+  loadPricing();
+
+  // Stripeの決済画面から戻ってきた場合：支払いを確認して解錠する
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('pay') === 'success' && qp.get('session_id')) {
+    history_cleanUrl();
+    try {
+      const j = await verifyPurchase(qp.get('session_id'));
+      alert(`お支払いを確認しました。ありがとうございます。\n\n購入復元コード（控え）:\n${j.session_id}\n\n端末の記録が消えた場合、このコードで購入を復元できます。「記録を保存」のファイルにも含まれます。`);
+    } catch(e) {
+      alert('お支払いの確認に失敗しました。\n' + e.message + '\n\n決済メールに記載のコードで「購入復元」をお試しいただくか、時間をおいて再読み込みしてください。');
+    }
+  } else if (qp.get('pay') === 'cancel') {
+    history_cleanUrl();
+  }
+
   if (!PROXY_URL && !getApiKey()) {
     showApiKeyModal();
   } else {
     const session = loadSession();
     if (session && session.history?.length > 0) {
+      // 既存の利用者に開始日署名がまだ無ければ発行しておく（発行日=今日になる）
+      ensureReceipt();
       showResumeCard(session);
     } else {
       showGuidance();
     }
   }
 });
+
+// URLから決済用のクエリを消す（再読込での二重確認を防ぐ）
+function history_cleanUrl() {
+  try { window.history.replaceState(null, '', location.pathname); } catch(e) {}
+}
 </script>
 </body>
 </html>
