@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>住まいの対話 — この対話について</title>
+<meta name="description" content="「どんな家にしたいですか？」に、自分の言葉で答えられるようになるために。サービスが生まれた理由と使い方。">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta property="og:site_name" content="住まいの対話">
+<meta property="og:type" content="website">
+<meta property="og:title" content="住まいの対話 — この対話について">
+<meta property="og:description" content="「どんな家にしたいですか？」に、自分の言葉で答えられるようになるために。サービスが生まれた理由と使い方。">
+<meta property="og:url" content="https://sumai-dialogue.com/about.html">
+<meta property="og:image" content="https://sumai-dialogue.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@300;400;500&display=swap');
+:root{
+  --paper:#f6f2e8; --card:#fbf8f0; --ink:#242019; --ink2:#5b5346;
+  --faint:#a2977f; --hair:#ddd2be; --clay:#8a6a4c;
+  --serif:'Lora','Noto Serif JP',serif; --sans:'Noto Sans JP',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weight:300;line-height:2.0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:620px;margin:0 auto;padding:64px 24px 80px}
+@media(max-width:480px){.wrap{padding:48px 20px 64px}}
+
+.mark{font-family:var(--serif);font-weight:400;font-size:26px;letter-spacing:.12em;color:var(--ink)}
+.mark-sub{font-size:10px;letter-spacing:.32em;color:var(--clay);margin-top:6px;font-weight:400}
+.tagline{font-family:var(--serif);font-size:14px;color:var(--ink2);margin-top:22px;line-height:2.0}
+
+.cta{display:inline-block;margin-top:30px;padding:13px 34px;border:1px solid var(--clay);color:var(--clay);
+  font-family:var(--sans);font-weight:400;font-size:14px;letter-spacing:.14em;text-decoration:none;
+  transition:background .2s,color .2s}
+.cta:hover{background:var(--clay);color:var(--paper)}
+
+.kicker{font-size:10px;letter-spacing:.3em;color:var(--clay);font-weight:500;margin-bottom:26px}
+section{margin-top:76px;padding-top:44px;border-top:1px solid var(--hair)}
+section:first-of-type{border-top:none;padding-top:0}
+
+h2{font-family:var(--serif);font-weight:400;font-size:19px;line-height:1.7;letter-spacing:.04em;margin-bottom:26px}
+.story p{font-family:var(--serif);font-weight:300;font-size:14.5px;line-height:2.15;color:var(--ink);margin-bottom:1.7em}
+.story p:last-child{margin-bottom:0}
+.story .q{font-size:16px;letter-spacing:.06em}
+
+.plist{list-style:none;margin:14px 0 22px}
+.plist li{font-size:13.5px;color:var(--ink2);padding:9px 0 9px 20px;position:relative;line-height:1.9}
+.plist li::before{content:'—';color:var(--clay);position:absolute;left:0}
+.plist-lbl{font-size:11px;letter-spacing:.2em;color:var(--clay);font-weight:500}
+
+.flow{margin:8px 0 34px}
+.flow-step{display:flex;gap:16px;padding:15px 0;border-bottom:1px solid var(--hair);align-items:baseline}
+.flow-step:last-child{border-bottom:none}
+.flow-n{font-family:var(--serif);font-size:12px;color:var(--faint);flex-shrink:0}
+.flow-t{font-size:13.5px;color:var(--ink);line-height:1.9}
+.flow-t small{display:block;font-size:12px;color:var(--ink2)}
+
+.price-tbl{width:100%;border-collapse:collapse;margin-top:6px}
+.price-tbl td{padding:13px 0;border-bottom:1px solid var(--hair);font-size:13.5px;color:var(--ink2);vertical-align:baseline}
+.price-tbl td.amt{text-align:right;font-family:var(--serif);font-size:15px;color:var(--ink);white-space:nowrap}
+.price-note{font-size:12px;color:var(--ink2);line-height:2.0;margin-top:16px}
+.price-note strong{font-weight:500;color:var(--clay)}
+
+.status{list-style:none;margin-top:4px}
+.status li{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--hair);font-size:13.5px;color:var(--ink2);line-height:1.9}
+.status li:last-child{border-bottom:none}
+.st-tag{flex-shrink:0;font-size:10.5px;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--hair);color:var(--faint);height:fit-content;margin-top:5px;white-space:nowrap}
+.st-tag.ok{color:#6f7d5a;border-color:#6f7d5a}
+.st-tag.soon{color:var(--clay);border-color:var(--clay)}
+
+.maker{font-size:13px;color:var(--ink2);line-height:2.1}
+.maker-name{font-family:var(--serif);font-size:14.5px;color:var(--ink);margin-top:10px}
+
+footer{margin-top:88px;padding-top:26px;border-top:1px solid var(--hair);
+  font-size:11.5px;color:var(--faint);line-height:2.2}
+footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
+.foot-mark{font-family:var(--serif);letter-spacing:.1em;color:var(--ink2);margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">住まいの対話</div>
+    <div class="mark-sub">SUMAI DIALOGUE</div>
+    <p class="tagline">専門家に会う前に、自分の言葉で暮らしを整理する時間。</p>
+    <a class="cta" href="./">対話をはじめる</a>
+  </header>
+
+  <section class="story">
+    <p class="kicker">ABOUT</p>
+    <h2>はじめに ― この対話について</h2>
+    <p class="q">「どんな家にしたいですか？」</p>
+    <p>意外と難しい質問だと思いませんか。</p>
+    <p>設計の打ち合わせは、たいていこの問いから始まります。でも、すぐには言葉が出てこない。そういう方が多いように思います。</p>
+    <p>当然だと思います。家を建てるのは一生に一度あるかどうかのことで、そのために考える練習をする機会は、あまりありません。</p>
+    <p>ヒアリングのとき、中立にお話を聞くことが大切です。誘導しない。こちらの好みを混ぜない。答えを先に置かない。ただ、それがなかなか難しいことです。</p>
+    <p>これは、心がけの問題というより、経験や力量のバランスの問題です。</p>
+    <p>設計者は、何十件も家をつくってきています。住む人は、たぶん初めてです。同じテーブルについていても、その場で使える言葉の量が違う。言葉を多く持っているほうが話し、少ないほうが「そうですね」と答える。放っておけば、会話は自然にそちらへ傾きます。気をつけていても、傾きそのものが消えるわけではありません。</p>
+    <p>だとしたら、傾きを打ち消そうとするより、住む人の側に、あらかじめ言葉を用意しておくほうが早い。</p>
+    <p>住む人が自分の言葉を持って席につくための時間は、これまであまり用意されてきませんでした。このサービスは、その時間をつくれないかと考えて生まれました。</p>
+  </section>
+
+  <section class="story">
+    <h2>これは、答えを出すためのものではありません</h2>
+    <p>最後に「要望書」という形のものができあがります。けれどそこに、間取りや正解が書かれているわけではありません。</p>
+    <p>出てくるのは、あなたが何を大事にしている人なのか、という手がかりだけです。</p>
+    <p>言ってしまえば、これは自分と向き合うための道具です。そして、そこを通らないまま設計に進むことも、できなくはありません。ただ、急いで進んだぶんは、後から取り返すことになりがちです。</p>
+  </section>
+
+  <section class="story">
+    <h2>ひとりで考えるのは、けっこう難しい</h2>
+    <p>事前に考えておいたほうがいいことは、確かにあります。ただ、何を考えればいいのかが分からない、というのが実際のところではないでしょうか。</p>
+    <p>だから、聞き手を用意しました。設計者が考えた問いを持った、AIの聞き手です。</p>
+    <p>うまく話そうとしなくて大丈夫です。まとまっていなくても、途中で気が変わっても構いません。とりとめのない話のほうに、案外、大事なものが混ざっています。</p>
+  </section>
+
+  <section class="story">
+    <h2>どこの会社のものでもありません</h2>
+    <p>特定の設計事務所や工務店に誘導することはありません。どこかの企業のために、あなたの言葉を集めているのでもありません。</p>
+    <p>できあがった要望書は、あなたのものです。どこに持っていっても、持っていかなくても構いません。</p>
+  </section>
+
+  <section>
+    <p class="kicker">PROMISE</p>
+    <h2>安心して話していただくために</h2>
+    <p class="plist-lbl">こちらの約束</p>
+    <ul class="plist">
+      <li>あなたの話を集めて何かに使うことはありません。</li>
+      <li>話した内容はサーバーに保存されません。記録は、あなたの端末の中にだけ残ります。</li>
+    </ul>
+    <p class="plist-lbl">お願いはふたつ</p>
+    <ul class="plist">
+      <li>はじめに、ご自身のことが分からないニックネームを決めてください。</li>
+      <li>最寄り駅の名前、「隣が公園です」といった、場所や個人が特定できることは書かないでください。</li>
+    </ul>
+    <p class="story" style="font-family:var(--serif);font-size:14.5px;">このふたつだけ守っていただければ、あとは自由に話してください。</p>
+  </section>
+
+  <section>
+    <p class="kicker">HOW &amp; PRICE</p>
+    <h2>使い方と料金</h2>
+    <div class="flow">
+      <div class="flow-step"><span class="flow-n">1</span><span class="flow-t">AIの聞き手と、暮らしについて話す<small>スマートフォンでもパソコンでも。途中でやめて、後日つづきから再開できます。</small></span></div>
+      <div class="flow-step"><span class="flow-n">2</span><span class="flow-t">対話から「暮らしと住まいの要望書」が一冊にまとまる<small>あなたの言葉をもとに構成された、印刷もできるブックレットです。</small></span></div>
+      <div class="flow-step"><span class="flow-n">3</span><span class="flow-t">設計者や工務店との打ち合わせに持っていく<small>持っていかなくても構いません。要望書はあなたのものです。</small></span></div>
+    </div>
+    <table class="price-tbl" id="price-tbl">
+      <tr><td>はじめに・目的の整理（STEP 0〜1）</td><td class="amt">無料</td></tr>
+      <tr><td>暮らしと質感の対話（STEP 2〜3）</td><td class="amt" id="amt-1">¥300</td></tr>
+      <tr><td>優先順位の整理と要望書（STEP 4）</td><td class="amt" id="amt-2">¥600</td></tr>
+    </table>
+    <p class="price-note" id="price-note">
+      お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">SAMPLE</p>
+    <h2>見本の一冊</h2>
+    <p class="story" style="font-family:var(--serif);font-size:14.5px;line-height:2.15;">参考として掲載する要望書は、設計者自身がいくつかの人物像を想定して対話したものです。実際に使われた方のものではありません。「こういうものができあがるのか」という見本として、気楽にご覧ください。</p>
+    <p class="price-note" style="margin-top:14px;">見本は現在準備中です。できあがり次第、このページに並べます。</p>
+  </section>
+
+  <section>
+    <p class="kicker">STATUS</p>
+    <h2>開発の現在地</h2>
+    <ul class="status">
+      <li><span class="st-tag ok">できている</span><span>AIとの対話 ／ 要望書とブックレット ／ 記録の保存・再開 ／ 匿名シェア</span></li>
+      <li><span class="st-tag soon">試験運用中</span><span>いまは試験運用期間です。料金は試験価格で、実際の請求はまだ発生しません。</span></li>
+      <li><span class="st-tag soon">準備中</span><span>お支払いの仕組み ／ STEP 5（各空間の詳細ヒアリング）／ 見本の一冊</span></li>
+      <li><span class="st-tag">予定</span><span>変更があれば、このページでお知らせします。</span></li>
+    </ul>
+  </section>
+
+  <section class="story">
+    <h2>最後に</h2>
+    <p>急がなくて大丈夫です。一度で終わらせる必要もありませんし、途中でやめても構いません。</p>
+    <p>家のことを考えているつもりが、暮らしのことを考える時間になるかもしれません。それだけでも、悪くない時間だと思っています。</p>
+    <a class="cta" href="./">対話をはじめる</a>
+  </section>
+
+  <section>
+    <p class="kicker">MAKER</p>
+    <h2>作っている人</h2>
+    <p class="maker">住宅の設計とヒアリングの現場から生まれたサービスです。問いの設計も、要望書の構成も、一人の設計者の実務から来ています。</p>
+    <p class="maker-name">星名岳志 ／ 一級建築士</p>
+    <p class="maker" style="margin-top:14px;">ご意見・ご感想は <a href="mailto:hands.a.design@gmail.com" style="color:var(--clay)">hands.a.design@gmail.com</a> へ。試験運用中のいま、いただいた声がそのままサービスの形になります。</p>
+  </section>
+
+  <footer>
+    <div class="foot-mark">住まいの対話 · SUMAI DIALOGUE</div>
+    <a href="./">対話をはじめる</a> ／ <a href="legal.html">利用規約・特定商取引法に基づく表記</a>
+  </footer>
+
+</div>
+<script>
+(async () => {
+  try {
+    const res = await fetch('https://mirai-proxy.hands-a-design.workers.dev/pricing');
+    const j = await res.json();
+    if (!j.applicable) return;
+    const p = j.applicable.prices;
+    if (p['STEP0-1'] != null) document.getElementById('amt-1').textContent = '¥' + p['STEP0-1'].toLocaleString();
+    if (p['STEP3'] != null) document.getElementById('amt-2').textContent = '¥' + p['STEP3'].toLocaleString();
+    let note = 'お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。';
+    if (j.applicable.id !== 'regular') {
+      const until = j.applicable.until ? j.applicable.until.replace(/-/g, '/') + 'まで' : '';
+      note += `<br>現在は<strong>${j.applicable.label}</strong>です${until ? '（' + until + '）' : ''}。この期間に始めた方は、期間が終わってもこの価格のまま最後まで進めます。`;
+      if (j.next) {
+        note += `通常価格は ¥${j.next.prices['STEP0-1'].toLocaleString()} + ¥${j.next.prices['STEP3'].toLocaleString()} です。`;
+      }
+    }
+    if (!j.live) note += '<br>※テスト公開中のため、実際のお支払いはまだ発生しません。';
+    document.getElementById('price-note').innerHTML = note;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

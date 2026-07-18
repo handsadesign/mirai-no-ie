@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>住まいの対話</title>
+<meta name="description" content="AIの聞き手との対話から、自分の言葉で「暮らしと住まいの要望書」を。話した内容はサーバーに保存されず、あなたの端末の中にだけ残ります。">
+<meta property="og:site_name" content="住まいの対話">
+<meta property="og:type" content="website">
+<meta property="og:title" content="住まいの対話 — 暮らしと住まいの要望書をつくる">
+<meta property="og:description" content="AIの聞き手との対話から、自分の言葉で「暮らしと住まいの要望書」を。話した内容はサーバーに保存されず、あなたの端末の中にだけ残ります。">
+<meta property="og:url" content="https://sumai-dialogue.com/">
+<meta property="og:image" content="https://sumai-dialogue.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -432,6 +440,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       保存した記録ファイルをお持ちの方は
       <label class="guide-import-link">こちらから再開<input type="file" accept=".json,application/json" id="import-file" onchange="importSessionFile(this.files[0])" style="display:none"></label>
     </div>
+    <div class="guide-import" style="margin-top:8px">
+      <a href="about.html" style="color:inherit">このサービスについて — 作った理由を読む</a>
+    </div>
   </div>
 </div>
 
@@ -676,7 +687,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260718131204"></script>
+<script src="brief_render.js?v=20260718131906"></script>
 
 <script>
 // ── API接続設定 ──
