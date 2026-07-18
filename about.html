@@ -174,6 +174,20 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     </ul>
   </section>
 
+  <section>
+    <p class="kicker">FEEDBACK</p>
+    <h2>ご意見・ご感想</h2>
+    <p class="maker">試験運用中のいま、いただいた声がそのままサービスの形になります。匿名で、ひとことでも。<br>
+    <span style="font-size:12px;color:var(--faint)">※お名前や連絡先は書かないでください。返信は行いません（この欄は一方通行です）。</span></p>
+    <form id="fb-form" style="margin-top:18px">
+      <textarea id="fb-text" rows="4" maxlength="2000" placeholder="例）STEP2の質問が楽しかった／要望書のここが分かりにくかった…"
+        style="width:100%;background:var(--card);border:1px solid var(--hair);padding:14px;font-family:var(--sans);font-size:16px;font-weight:300;color:var(--ink);line-height:1.9;resize:vertical;outline:none"></textarea>
+      <input type="text" id="fb-hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+      <button type="submit" class="cta" style="margin-top:14px;cursor:pointer;background:none">感想を送る</button>
+      <p id="fb-msg" style="font-size:12.5px;color:var(--clay);margin-top:12px;display:none"></p>
+    </form>
+  </section>
+
   <section class="story">
     <h2>最後に</h2>
     <p>急がなくて大丈夫です。一度で終わらせる必要もありませんし、途中でやめても構いません。</p>
@@ -186,7 +200,6 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     <h2>作っている人</h2>
     <p class="maker">住宅の設計とヒアリングの現場から生まれたサービスです。問いの設計も、要望書の構成も、設計事務所の実務から来ています。</p>
     <p class="maker-name">ハンズデザイン一級建築士事務所</p>
-    <p class="maker" style="margin-top:14px;">ご意見・ご感想は <a href="mailto:hands.a.design@gmail.com" style="color:var(--clay)">hands.a.design@gmail.com</a> へ。試験運用中のいま、いただいた声がそのままサービスの形になります。</p>
   </section>
 
   <footer>
@@ -196,6 +209,31 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
 
 </div>
 <script>
+document.getElementById('fb-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = document.getElementById('fb-text').value.trim();
+  const msg = document.getElementById('fb-msg');
+  msg.style.display = 'block';
+  if (!text) { msg.textContent = '本文を入力してください。'; return; }
+  msg.textContent = '送信しています…';
+  try {
+    const res = await fetch('https://mirai-proxy.hands-a-design.workers.dev/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, page: 'about', hp: document.getElementById('fb-hp').value }),
+    });
+    const j = await res.json();
+    if (j.ok) {
+      document.getElementById('fb-text').value = '';
+      msg.textContent = '届きました。ありがとうございます。';
+    } else {
+      msg.textContent = j.error?.message || '送信できませんでした。時間をおいてお試しください。';
+    }
+  } catch (err) {
+    msg.textContent = '送信できませんでした。通信環境をご確認ください。';
+  }
+});
+
 (async () => {
   try {
     const res = await fetch('https://mirai-proxy.hands-a-design.workers.dev/pricing');
