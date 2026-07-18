@@ -628,6 +628,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <div class="help-tabs">
     <button class="help-tab active" data-tab="how" onclick="switchHelpTab('how')">進め方</button>
     <button class="help-tab" data-tab="tips" onclick="switchHelpTab('tips')">大切なこと</button>
+    <button class="help-tab" data-tab="about" onclick="switchHelpTab('about')">このサービスについて</button>
   </div>
   <div class="fullrep-body">
     <div class="help-page" id="help-page-how">
@@ -656,6 +657,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <div class="help-tip"><strong>🔒 端末とブラウザは、最後まで同じものを</strong>別の端末・別のブラウザでは続きができません。LINEやInstagramの中では開かず、SafariやChromeで開いてください。</div>
 
       <div class="help-tip"><strong>👪 ご家族と住む方へ</strong>相談の前に、まずは一人ひとり別々に受けてみてください。お互いに知らなかった本心が見つかり、話し合う良いきっかけになるかもしれません。</div>
+    </div>
+
+    <div class="help-page" id="help-page-about" style="display:none">
+      <h2 class="help-h">このサービスについて</h2>
+      <p class="help-lead">「住まいの対話」がなぜ生まれたのか、料金の考え方、開発の現在地、ご意見・ご感想の送り方などをまとめた紹介ページがあります。</p>
+      <div class="help-tip"><strong>📖 紹介ページを読む</strong>別のタブで開くので、いまの対話はこのまま残ります。<br><a href="about.html" target="_blank" rel="noopener" style="color:var(--accent);font-weight:500;display:inline-block;margin-top:8px">このサービスについて — 作った理由を読む →</a></div>
     </div>
   </div>
 </div>
@@ -687,7 +694,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260718133757"></script>
+<script src="brief_render.js?v=20260718135048"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1929,6 +1936,7 @@ function switchHelpTab(tab) {
   document.querySelectorAll('.help-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('help-page-how').style.display = tab === 'how' ? '' : 'none';
   document.getElementById('help-page-tips').style.display = tab === 'tips' ? '' : 'none';
+  document.getElementById('help-page-about').style.display = tab === 'about' ? '' : 'none';
 }
 
 function openFullReportFromStorage() {

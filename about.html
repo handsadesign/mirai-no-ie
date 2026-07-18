@@ -76,9 +76,37 @@ footer{margin-top:88px;padding-top:26px;border-top:1px solid var(--hair);
   font-size:11.5px;color:var(--faint);line-height:2.2}
 footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
 .foot-mark{font-family:var(--serif);letter-spacing:.1em;color:var(--ink2);margin-bottom:4px}
+
+/* 左固定のナビ（広い画面のみ。目次クリックでその場所へ） */
+html{scroll-behavior:smooth}
+.side{display:none}
+@media(min-width:1080px){
+  .side{display:block;position:fixed;top:64px;left:calc(50% - 520px);width:170px}
+  .side-mark{font-family:var(--serif);font-size:15px;letter-spacing:.1em;color:var(--ink)}
+  .side-cta{display:block;margin-top:16px;padding:10px 0;border:1px solid var(--clay);color:var(--clay);
+    text-align:center;font-size:12.5px;letter-spacing:.12em;text-decoration:none;transition:background .2s,color .2s}
+  .side-cta:hover{background:var(--clay);color:var(--paper)}
+  .side-toc{list-style:none;margin-top:26px;border-top:1px solid var(--hair)}
+  .side-toc a{display:block;padding:8px 0 8px 2px;border-bottom:1px solid var(--hair);
+    font-size:11.5px;letter-spacing:.06em;color:var(--ink2);text-decoration:none;transition:color .15s,padding-left .15s}
+  .side-toc a:hover{color:var(--clay);padding-left:7px}
+}
 </style>
 </head>
 <body>
+<nav class="side">
+  <div class="side-mark">住まいの対話</div>
+  <a class="side-cta" href="./">対話をはじめる</a>
+  <ul class="side-toc">
+    <li><a href="#about">はじめに</a></li>
+    <li><a href="#promise">約束とお願い</a></li>
+    <li><a href="#how">使い方と料金</a></li>
+    <li><a href="#sample">見本の一冊</a></li>
+    <li><a href="#status">開発の現在地</a></li>
+    <li><a href="#feedback">ご意見・ご感想</a></li>
+    <li><a href="#maker">作っている人</a></li>
+  </ul>
+</nav>
 <div class="wrap">
 
   <header>
@@ -88,7 +116,7 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     <a class="cta" href="./">対話をはじめる</a>
   </header>
 
-  <section class="story">
+  <section class="story" id="about">
     <p class="kicker">ABOUT</p>
     <h2>はじめに ― この対話について</h2>
     <p class="q">「どんな家にしたいですか？」</p>
@@ -122,7 +150,7 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     <p>できあがった要望書は、あなたのものです。どこに持っていっても、持っていかなくても構いません。</p>
   </section>
 
-  <section>
+  <section id="promise">
     <p class="kicker">PROMISE</p>
     <h2>安心して話していただくために</h2>
     <p class="plist-lbl">こちらの約束</p>
@@ -138,7 +166,7 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     <p class="story" style="font-family:var(--serif);font-size:14.5px;">このふたつだけ守っていただければ、あとは自由に話してください。</p>
   </section>
 
-  <section>
+  <section id="how">
     <p class="kicker">HOW &amp; PRICE</p>
     <h2>使い方と料金</h2>
     <div class="flow">
@@ -156,14 +184,14 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     </p>
   </section>
 
-  <section>
+  <section id="sample">
     <p class="kicker">SAMPLE</p>
     <h2>見本の一冊</h2>
     <p class="story" style="font-family:var(--serif);font-size:14.5px;line-height:2.15;">参考として掲載する要望書は、設計者自身がいくつかの人物像を想定して対話したものです。実際に使われた方のものではありません。「こういうものができあがるのか」という見本として、気楽にご覧ください。</p>
     <p class="price-note" style="margin-top:14px;">見本は現在準備中です。できあがり次第、このページに並べます。</p>
   </section>
 
-  <section>
+  <section id="status">
     <p class="kicker">STATUS</p>
     <h2>開発の現在地</h2>
     <ul class="status">
@@ -174,7 +202,7 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     </ul>
   </section>
 
-  <section>
+  <section id="feedback">
     <p class="kicker">FEEDBACK</p>
     <h2>ご意見・ご感想</h2>
     <p class="maker">試験運用中のいま、いただいた声がそのままサービスの形になります。匿名で、ひとことでも。<br>
@@ -195,7 +223,7 @@ footer a{color:var(--faint);text-decoration:underline;text-underline-offset:3px}
     <a class="cta" href="./">対話をはじめる</a>
   </section>
 
-  <section>
+  <section id="maker">
     <p class="kicker">MAKER</p>
     <h2>作っている人</h2>
     <p class="maker">住宅の設計とヒアリングの現場から生まれたサービスです。問いの設計も、要望書の構成も、設計事務所の実務から来ています。</p>
