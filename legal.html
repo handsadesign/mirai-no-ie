@@ -93,7 +93,8 @@ td{color:var(--ink-mid);background:var(--paper-card)}
 <ul>
 <li>対話の記録・要望書は、利用者の端末のブラウザ内（localStorage）にのみ保存されます。</li>
 <li>AIの応答を生成するため、対話内容は当方の中継サーバー（Cloudflare Workers）を経由してAnthropic社のClaude APIに送信されます。中継サーバーは内容を保存しません。</li>
-<li>Anthropic社のAPIに送信されたデータは、同社の商用APIデータ利用方針に基づき取り扱われ、既定ではAIの学習に使用されません。</li>
+<li>Anthropic社のAPIに送信されたデータは、同社の商用APIデータ利用方針に基づき取り扱われ、利用者の許可なくAIモデルの学習に使用されることはありません。ただし同社は、不正利用の防止等の目的で、送信されたデータを一定期間（既定では最大30日間）保持する場合があります。詳細は<a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic社のプライバシーポリシー</a>をご確認ください。</li>
+<li>要点として、当方（ハンズデザイン）自身のサーバーには対話内容を保存しません。保存の有無をまとめると、当方＝保存しない／中継サーバー＝保存しない／AI提供元（Anthropic社）＝学習には使わないが不正防止のため一定期間保持し得る、となります。</li>
 </ul>
 
 <h3>当方が取得する情報</h3>
