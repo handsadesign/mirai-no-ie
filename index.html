@@ -327,12 +327,20 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .price-amt{font-family:var(--serif);font-size:16px;color:var(--ink)}
 .price-row-ttl{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px}
 .price-row-desc{font-size:12px;color:var(--ink-mid);line-height:1.7}
+.price-row-unlocks{list-style:none;margin:10px 0 0;padding:0}
+.price-row-unlocks li{font-size:11.5px;color:var(--ink-mid);line-height:1.6;padding:3px 0 3px 16px;position:relative}
+.price-row-unlocks li::before{content:'✓';position:absolute;left:0;color:var(--accent-mid);font-size:10px}
 .pricing-note{font-size:11px;color:var(--ink-light);line-height:1.8;margin:14px 0 20px}
 /* 支払いゲート */
 .paygate{border:1.5px solid var(--accent);border-radius:var(--r);background:var(--paper-card);padding:22px 24px;margin:16px 0;text-align:center}
 .paygate-badge{display:inline-block;font-size:10px;letter-spacing:.14em;color:var(--accent-mid);background:var(--accent-dim);padding:4px 12px;border-radius:20px;margin-bottom:12px}
 .paygate-ttl{font-family:var(--serif);font-size:17px;color:var(--ink);margin-bottom:6px;letter-spacing:.04em}
 .paygate-desc{font-size:12px;color:var(--ink-mid);line-height:1.8;margin-bottom:14px}
+.paygate-unlocks-lbl{font-size:10px;letter-spacing:.14em;color:var(--accent-mid);font-weight:500;margin-bottom:8px;text-align:left}
+.paygate-unlocks{list-style:none;margin:0 0 16px;padding:0;text-align:left}
+.paygate-unlocks li{font-size:12.5px;color:var(--ink);line-height:1.7;padding:6px 0 6px 20px;position:relative;border-bottom:1px solid var(--hair)}
+.paygate-unlocks li:last-child{border-bottom:none}
+.paygate-unlocks li::before{content:'✓';position:absolute;left:0;color:var(--accent-mid);font-size:11px}
 .paygate-price{font-family:var(--serif);font-size:28px;font-weight:300;color:var(--ink);margin-bottom:14px}
 .paygate-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:12px 32px;font-size:14px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;transition:background .2s}
 .paygate-btn:hover{background:var(--accent-mid)}
@@ -694,7 +702,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260719103042"></script>
+<script src="brief_render.js?v=20260719104422"></script>
 
 <script>
 // ── API接続設定 ──
@@ -779,8 +787,10 @@ const PRICING = {
   live: false,  // 決済導入前は false（説明ページに「まだ請求は発生しない」注記が出る）
   stages: [
     { steps: 'STEP 0〜1', label: 'はじめに・目的の整理', desc: '家族構成と、住まいづくりの目的をAIとの対話で整理します。ここまでのまとめもお渡しします。', price: 0,    after: null },
-    { steps: 'STEP 2〜3', label: '暮らしと質感の対話',   desc: '一日の暮らしのトレースと、空間の質感・好みの整理。対話の中心となる部分です。',       price: 600,  after: 'STEP0-1' },
-    { steps: 'STEP 4',    label: '優先順位の整理と要望書', desc: 'プランニング判断の整理と、設計者や工務店に渡せる「住まい作り要望書」の作成。',            price: 1200, after: 'STEP3' },
+    { steps: 'STEP 2〜3', label: '暮らしと質感の対話',   desc: '一日の暮らしのトレースと、空間の質感・好みの整理。対話の中心となる部分です。',       price: 600,  after: 'STEP0-1',
+      unlocks: ['一日の暮らしを朝から夜までたどるAIとの対話', '好きな空間の質感・雰囲気を言葉にする対話', 'この区間の対話を、いつでも中断・再開できます'] },
+    { steps: 'STEP 4',    label: '優先順位の整理と要望書', desc: 'プランニング判断の整理と、設計者や工務店に渡せる「住まい作り要望書」の作成。',            price: 1200, after: 'STEP3',
+      unlocks: ['何を大切にし何を手放すかを整理するAIとの対話', '「暮らしと住まいの要望書」の作成（何度でも作り直せます）', '要望書の印刷・PDF保存・匿名シェア'] },
   ],
 };
 
@@ -825,6 +835,7 @@ function buildPricingPage() {
       </div>
       <div class="price-row-ttl">${s.label}</div>
       <div class="price-row-desc">${s.desc}</div>
+      ${s.unlocks ? `<ul class="price-row-unlocks">${s.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>` : ''}
     </div>`).join('');
   const total = PRICING.stages.reduce((a, s) => a + s.price, 0);
   let note = `すべて進んだ場合の合計は ¥${total.toLocaleString()} です。お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。`;
@@ -866,6 +877,8 @@ function maybeAddPaywall(label) {
     <div class="paygate-badge">ここから先は有料です</div>
     <div class="paygate-ttl">${stage.label}</div>
     <div class="paygate-desc">${stage.desc}</div>
+    ${stage.unlocks ? `<div class="paygate-unlocks-lbl">この料金でできること</div>
+      <ul class="paygate-unlocks">${stage.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>` : ''}
     <div class="paygate-price">¥${stage.price.toLocaleString()}</div>
     <button class="paygate-btn" onclick="openCheckout('${label}')">支払って進む</button>
     ${PRICING.live
