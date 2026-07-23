@@ -702,13 +702,28 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260720091905"></script>
+<script src="brief_render.js?v=20260723161513"></script>
 
 <script>
 // ── API接続設定 ──
 // PROXY_URL に Cloudflare Worker URL を設定するとプロキシ経由で動作（APIキー不要）。
 // 空のままにするとブラウザから直接 Anthropic API を呼び出す（APIキー入力が必要）。
-const PROXY_URL = 'https://mirai-proxy.hands-a-design.workers.dev';
+// ローカル（file:// または localhost）で開いた場合は開発用Worker（mirai-proxy-dev）に
+// 自動接続する。開発Workerは統計KVを持たないため、何度試してもファネルは動かない。
+// localStorageもオリジン単位で分かれるので、本番利用者のデータと混ざることはない。
+const IS_DEV = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+const PROXY_URL = IS_DEV
+  ? 'https://mirai-proxy-dev.hands-a-design.workers.dev'
+  : 'https://mirai-proxy.hands-a-design.workers.dev';
+
+if (IS_DEV) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('div');
+    b.textContent = '開発版';
+    b.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;background:#b5651d;color:#fff;font-size:11px;letter-spacing:.08em;padding:2px 10px;border-radius:10px;opacity:.85;pointer-events:none;';
+    document.body.appendChild(b);
+  });
+}
 
 const STORAGE_KEY = 'sumai_anthropic_key';
 
@@ -1473,6 +1488,10 @@ async function callClaude(userMsg) {
     body: JSON.stringify({
       model: 'claude-sonnet-5',
       max_tokens: 1000,
+      // sonnet-5は thinking 未指定だと自動で内部思考し、その分も max_tokens を
+      // 消費して返答が途中で切れる（最悪、本文ゼロ）。対話は短いラリーなので
+      // 思考を明示的にオフにする（2026-07-23の途切れ不具合の修正）。
+      thinking: { type: 'disabled' },
       messages: withCache(history)
     })
   });
@@ -1779,7 +1798,9 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
   const res = await fetch(apiEndpoint(), {
     method: 'POST',
     headers: apiHeaders(),
-    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-5', max_tokens: maxTokens, stream: true, messages: withCache(messages) }, extra))
+    // thinking disabled: sonnet-5は未指定だと自動思考しmax_tokensを食う（callClaudeと同じ対策）。
+    // extraで上書き可（opus-4-8もdisabled指定を受け付けるためeditorial呼び出しもこのままでよい）
+    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-5', max_tokens: maxTokens, stream: true, thinking: { type: 'disabled' }, messages: withCache(messages) }, extra))
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
