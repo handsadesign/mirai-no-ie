@@ -221,8 +221,10 @@
     function theme(num, jp, en, evidence, wish) {
       var ev = (evidence || []).map(function (e) { return '<li>' + esc(speak(e)) + '</li>'; }).join('');
       var wi = (wish || []).map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('');
+      // テーマ名が長いと英字ラベルに押されて途中で改行されるので、字数で級数を落とす
+      var jpCls = 'th-jp' + (String(jp).length >= 8 ? ' long' : '');
       var body = kicker('DESIGN THEME — ' + num) +
-        '<div class="th-head"><h1 class="th-jp">' + esc(jp) + '</h1>' +
+        '<div class="th-head"><h1 class="' + jpCls + '">' + esc(jp) + '</h1>' +
         '<div class="th-en">' + esc(en) + '</div></div>' +
         '<div class="th-cols">' +
           '<div class="th-col th-ev"><div class="th-lab">対話からの根拠</div>' +
@@ -431,11 +433,13 @@
 ".itemlist li::before,.facts li::before,.reqlist li::before,.matlist li::before,.prilist li::before,.memolist li::before{content:'—';color:var(--clay);margin-right:3mm;}\n" +
 ".biglist li{font-size:11.5pt;line-height:1.55;color:var(--ink);font-weight:300;padding:3mm 0 3mm 7mm;text-indent:-7mm;border-bottom:.6pt solid var(--hair);}\n" +
 ".biglist li:last-child{border-bottom:none;}\n.biglist li::before{content:'—';color:var(--clay);margin-right:3.5mm;}\n.purpose-list{margin-top:8mm;max-width:118mm;}\n" +
-".factgrid{margin-top:6mm;}\n.facts{column-count:2;column-gap:10mm;}\n.facts li{break-inside:avoid;}\n" +
+// 住まい手の事実リストは1項目だけ次ページに溢れやすいので、行間を詰めて1ページに収める
+".factgrid{margin-top:4mm;}\n.facts{column-count:2;column-gap:9mm;}\n.facts li{break-inside:avoid;padding-top:1.7mm;padding-bottom:1.7mm;line-height:1.55;}\n" +
+// 一日の流れは行数が多く「暮らしの習慣」だけ次ページに落ちやすいので、行の余白を詰める
 ".timeline{margin-top:2mm;border-top:.6pt solid var(--hair);}\n.tl-row{display:table;width:100%;border-bottom:.6pt solid var(--hair);}\n" +
-".tl-t{display:table-cell;width:26mm;padding:2.9mm 0;vertical-align:top;font-family:'Lora';font-size:10.5pt;color:var(--clay);letter-spacing:.5pt;}\n" +
-".tl-d{display:table-cell;padding:2.9mm 0;vertical-align:top;font-size:9.8pt;line-height:1.5;color:var(--ink2);font-weight:300;}\n" +
-".tl-note{margin-top:7mm;font-size:9.4pt;line-height:1.8;color:var(--ink2);font-weight:300;}\n" +
+".tl-t{display:table-cell;width:26mm;padding:2.2mm 0;vertical-align:top;font-family:'Lora';font-size:10.5pt;color:var(--clay);letter-spacing:.5pt;}\n" +
+".tl-d{display:table-cell;padding:2.2mm 0;vertical-align:top;font-size:9.8pt;line-height:1.5;color:var(--ink2);font-weight:300;}\n" +
+".tl-note{margin-top:5mm;font-size:9.4pt;line-height:1.75;color:var(--ink2);font-weight:300;break-inside:avoid;}\n" +
 ".tl-note-lbl{font-size:8pt;letter-spacing:2pt;color:var(--clay);font-weight:500;margin-bottom:3mm;}\n" +
 ".vals{margin-top:2mm;}\n.val{display:table;width:100%;padding:6mm 0;border-bottom:.6pt solid var(--hair);}\n.val:last-child{border-bottom:none;}\n" +
 ".val-n{display:table-cell;width:20mm;vertical-align:top;font-family:'Lora';font-size:15pt;color:var(--faint);letter-spacing:1pt;}\n" +
@@ -443,7 +447,8 @@
 ".val-e{font-size:10pt;color:var(--ink2);line-height:1.7;margin-bottom:3.5mm;}\n" +
 ".val-q{font-size:11pt;color:var(--ink);line-height:1.8;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
 ".th-head{display:table;width:100%;margin-bottom:4mm;}\n" +
-".th-jp{display:table-cell;vertical-align:baseline;font-weight:300;font-size:30pt;letter-spacing:1pt;color:var(--ink);margin:0;}\n" +
+".th-jp{display:table-cell;vertical-align:baseline;font-weight:300;font-size:30pt;letter-spacing:1pt;color:var(--ink);margin:0;white-space:nowrap;}\n" +
+".th-jp.long{font-size:23pt;letter-spacing:.5pt;}\n" +
 ".th-en{display:table-cell;vertical-align:baseline;text-align:right;font-size:9pt;letter-spacing:2.5pt;color:var(--faint);text-transform:uppercase;}\n" +
 ".th-cols{display:table;width:100%;border-top:.8pt solid var(--hair);padding-top:7mm;}\n" +
 ".th-col{display:table-cell;width:50%;vertical-align:top;}\n.th-ev{padding-right:8mm;border-right:.6pt solid var(--hair);}\n.th-im{padding-left:8mm;}\n" +
