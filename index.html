@@ -703,7 +703,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260725052543"></script>
+<script src="brief_render.js?v=20260725053502"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1862,6 +1862,20 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
 
 // 要望書(土台/SOURCE)生成プロンプト。generateReport と regenerateReport で共用。
 // generatedAt はコード側で確定するため、ここでは空にしておく。
+// AIの応答からJSONを取り出す。コードブロックの囲みや、前後に説明文・
+// 前置きが付いてしまった場合でも壊れないように、最も外側の {...} / [...] を拾う。
+// 見つからない（会話文だけが返った）ときは、その旨がわかるエラーにする。
+function parseJsonLoose(text, what) {
+  let s = String(text || '').replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  try { return JSON.parse(s); } catch(e) {}
+  const first = Math.min(...['{', '['].map(c => { const i = s.indexOf(c); return i < 0 ? Infinity : i; }));
+  const last = Math.max(s.lastIndexOf('}'), s.lastIndexOf(']'));
+  if (first !== Infinity && last > first) {
+    try { return JSON.parse(s.slice(first, last + 1)); } catch(e) {}
+  }
+  throw new Error(`${what}のデータを受け取れませんでした。もう一度お試しください`);
+}
+
 const REPORT_PROMPT = `これまでの対話から「生活要望書」をJSON形式で作成してください。
 
 以下のJSON構造のみを出力してください。前後の説明文・マークダウン・コードブロック（\`\`\`）は不要です。JSONだけを返してください。
@@ -1935,11 +1949,10 @@ async function generateReport() {
   history.push({ role: 'user', content: jsonPrompt });
   let json;
   try {
-    const jsonRaw = (await claudeAPI(history, 8192, n => {
+    const jsonRaw = await claudeAPI(history, 8192, n => {
       loadEl.innerHTML = `<div class="rep-spin"></div>対話の内容を整理しています...（1/2・${n.toLocaleString()}字）<br><small>画面を閉じずにお待ちください</small>`;
-    }))
-      .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
-    json = JSON.parse(jsonRaw);
+    });
+    json = parseJsonLoose(jsonRaw, '要望書');
     json.generatedAt = new Date().toISOString();  // 生成日時はコードで確定（LLMが日付を書き換える事故を防ぐ）
     history.push({ role: 'assistant', content: jsonRaw });
     saveReport(json);
@@ -2042,9 +2055,8 @@ function loadEditorialFor(report) {
 // EDITORIAL を生成（mode:'editorial' でサーバ側の編集プロンプトを使う）
 async function generateEditorial(report, onProgress) {
   const source = buildEditorialSource(report);
-  const raw = (await claudeAPI([{ role: 'user', content: source }], 3072, onProgress, { mode: 'editorial', model: 'claude-opus-4-8' }))
-    .replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-  const ed = JSON.parse(raw);
+  const raw = await claudeAPI([{ role: 'user', content: source }], 3072, onProgress, { mode: 'editorial', model: 'claude-opus-4-8' });
+  const ed = parseJsonLoose(raw, '要望書の仕上げ');
   try { localStorage.setItem(EDITORIAL_KEY, JSON.stringify({ generatedAt: report.generatedAt, editorial: ed })); } catch(e) {}
   return ed;
 }
@@ -2075,9 +2087,8 @@ function cleanedHistoryFrom(map) {
 async function generateTranscriptClean(report, onProgress) {
   const userTexts = sessionHistory().filter(m => m && m.role === 'user' && typeof m.content === 'string').map(m => m.content);
   if (!userTexts.length) return null;
-  const raw = (await claudeAPI([{ role: 'user', content: JSON.stringify(userTexts) }], 8192, onProgress, { mode: 'transcript' }))
-    .replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-  const arr = JSON.parse(raw);
+  const raw = await claudeAPI([{ role: 'user', content: JSON.stringify(userTexts) }], 8192, onProgress, { mode: 'transcript' });
+  const arr = parseJsonLoose(raw, '対話の記録の清書');
   if (!Array.isArray(arr) || arr.length !== userTexts.length) throw new Error('清書の形式が想定と異なります');
   try { localStorage.setItem(TXCLEAN_KEY, JSON.stringify({ generatedAt: report.generatedAt, map: arr })); } catch(e) {}
   return arr;
@@ -2167,10 +2178,9 @@ async function regenerateBrief() {
   keepAwake();
   try {
     // ① 土台(report)を対話から作り直す
-    const jsonRaw = (await claudeAPI([...convo, { role: 'user', content: REPORT_PROMPT }], 8192, n =>
-      _briefLoading(true, `要望書の土台を作り直しています…（${n.toLocaleString()}字）`)))
-      .replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
-    const report = JSON.parse(jsonRaw);
+    const jsonRaw = await claudeAPI([...convo, { role: 'user', content: REPORT_PROMPT }], 8192, n =>
+      _briefLoading(true, `要望書の土台を作り直しています…（${n.toLocaleString()}字）`));
+    const report = parseJsonLoose(jsonRaw, '要望書');
     report.generatedAt = new Date().toISOString();  // 日付はコードで確定
     saveReport(report);
     // ② 仕上げ(editorial)を作り直す（generatedAt に紐づけて保存）
