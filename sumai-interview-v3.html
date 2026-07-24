@@ -703,7 +703,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260725060419"></script>
+<script src="brief_render.js?v=20260725061129"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1373,9 +1373,9 @@ function importSessionFile(file) {
       if (b.qa) localStorage.setItem(QA_KEY, b.qa);
       if (b.pay) localStorage.setItem(PAY_KEY, b.pay);
       if (b.receipt) localStorage.setItem(RECEIPT_KEY, b.receipt);
-      // 仕上げ・清書のキャッシュは古い状態と紐づいている可能性があるので破棄
-      // （generatedAtが同じでも中身の対話が違うことがあるため、常に消すのが安全）
-      try { localStorage.removeItem(EDITORIAL_KEY); localStorage.removeItem(TXCLEAN_KEY); } catch(e) {}
+      // 仕上げは対話の内容に紐づくので破棄する。
+      // 清書は発言ごとの辞書なので残す（同じ発言は二度と清書しないで済む）。
+      try { localStorage.removeItem(EDITORIAL_KEY); } catch(e) {}
       location.reload();
     } catch(e) {
       alert('記録ファイルを読み込めませんでした。「住まいの対話」で保存したファイルかご確認ください。');
@@ -2064,59 +2064,71 @@ async function generateEditorial(report, onProgress) {
 // ── 対話の記録の清書（音声入力の誤変換だけを直す）──
 // 直すのは明らかな誤変換・脱字・句読点のみ（Worker側の校正プロンプトが厳守）。
 // 失敗したら原文のまま表示する（清書は上乗せであって前提にしない）。
-const TXCLEAN_KEY = 'mirai-no-ie-txclean-v1';
+const TXCLEAN_KEY = 'mirai-no-ie-txclean-v2';
 
-// 清書は「話し手の発言」だけに依存し、要望書を作り直しても変わらない。
-// そのため要望書の生成日時ではなく、発言そのものの署名でキャッシュする
-// （対話が伸びたときだけ作り直す）。
+// 清書は発言ごとに覚える（発言の文面をキーにした辞書）。
+// こうすると、対話が伸びたときも記録を読み込み直したときも、
+// まだ清書していない発言だけをAIに渡せばよく、やり直しにならない。
 function userTextsOf() {
   return sessionHistory()
     .filter(m => m && m.role === 'user' && typeof m.content === 'string')
     .map(m => m.content);
 }
 
-function txSignature(texts) {
-  const s = texts.join('');
+function txHash(s) {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
-  return `${texts.length}:${s.length}:${h.toString(36)}`;
+  return s.length.toString(36) + '-' + h.toString(36);
 }
 
-function loadCleanMapFor() {
+function loadCleanDict() {
   try {
     const c = JSON.parse(localStorage.getItem(TXCLEAN_KEY));
-    if (c && Array.isArray(c.map) && c.sig === txSignature(userTextsOf())) return c.map;
+    if (c && c.dict && typeof c.dict === 'object') return c.dict;
   } catch(e) {}
-  return null;
+  return {};
 }
 
-// 履歴の話し手発言（n番目）を清書で置き換えた写しを返す。AIの発言はそのまま
-function cleanedHistoryFrom(map) {
-  let k = 0;
+// まだ清書していない発言（重複は1回だけ）
+function uncleanedTexts(dict) {
+  const seen = {}, out = [];
+  for (const t of userTextsOf()) {
+    const k = txHash(t);
+    if (dict[k] !== undefined || seen[k]) continue;
+    seen[k] = 1; out.push(t);
+  }
+  return out;
+}
+
+// 履歴の話し手発言を清書で置き換えた写しを返す。AIの発言はそのまま
+function cleanedHistoryFrom(dict) {
   return sessionHistory().map(m => {
     if (!m || m.role !== 'user' || typeof m.content !== 'string') return m;
-    const t = map[k++];
+    const t = dict[txHash(m.content)];
     return (typeof t === 'string' && t.trim()) ? { role: 'user', content: t } : m;
   });
 }
 
 async function generateTranscriptClean(onProgress) {
-  const userTexts = userTextsOf();
-  if (!userTexts.length) return null;
-  const raw = await claudeAPI([{ role: 'user', content: JSON.stringify(userTexts) }], 8192, onProgress, { mode: 'transcript' });
+  const dict = loadCleanDict();
+  const todo = uncleanedTexts(dict);
+  if (!todo.length) return dict;
+  const raw = await claudeAPI([{ role: 'user', content: JSON.stringify(todo) }], 8192, onProgress, { mode: 'transcript' });
   const arr = parseJsonLoose(raw, '対話の記録の清書');
-  if (!Array.isArray(arr) || arr.length !== userTexts.length) throw new Error('清書の形式が想定と異なります');
-  try { localStorage.setItem(TXCLEAN_KEY, JSON.stringify({ sig: txSignature(userTexts), map: arr })); } catch(e) {}
-  return arr;
+  if (!Array.isArray(arr) || arr.length !== todo.length) throw new Error('清書の形式が想定と異なります');
+  todo.forEach((src, i) => { if (typeof arr[i] === 'string' && arr[i].trim()) dict[txHash(src)] = arr[i]; });
+  try { localStorage.setItem(TXCLEAN_KEY, JSON.stringify({ dict })); } catch(e) {}
+  return dict;
 }
 
+// 清書済みの辞書を返す。未清書の発言があるときだけAIを呼ぶ。
+// 失敗しても、それまでに清書できている分はそのまま使う。
 async function ensureCleanMap() {
-  let map = loadCleanMapFor();
-  if (map) return map;
+  const dict = loadCleanDict();
+  if (!uncleanedTexts(dict).length) return dict;
   try {
-    map = await generateTranscriptClean(n => _briefLoading(true, `対話の記録を清書しています…（${n.toLocaleString()}字）`));
-  } catch(e) { map = null; }
-  return map;
+    return await generateTranscriptClean(n => _briefLoading(true, `対話の記録を清書しています…（${n.toLocaleString()}字）`));
+  } catch(e) { return dict; }
 }
 
 function _renderBriefInto(report, ed, txmap) {
@@ -2164,9 +2176,9 @@ async function openBrief() {
   if (!report) { alert('要望書データが見つかりません。'); return; }
   document.getElementById('brief-ov').classList.add('open');
   let ed = loadEditorialFor(report);
-  let txmap = loadCleanMapFor();
-  if (ed && txmap) { _briefLoading(false); _renderBriefInto(report, ed, txmap); return; }
-  // 初回オープン or 要望が変わった → 生成
+  let txmap = loadCleanDict();
+  // 仕上げ済みで、清書していない発言も無ければ、そのまま開く（待たせない）
+  if (ed && !uncleanedTexts(txmap).length) { _briefLoading(false); _renderBriefInto(report, ed, txmap); return; }
   _briefLoading(true, '要望書を仕上げています…');
   keepAwake();
   try {
@@ -2178,7 +2190,7 @@ async function openBrief() {
     alert(`要望書の作成でエラーが発生しました（${e.message}）。少し時間をおいて、もう一度お試しください。`);
     return;
   }
-  if (!txmap) txmap = await ensureCleanMap();  // 失敗時はnull（原文のまま）
+  txmap = await ensureCleanMap();  // 未清書の発言があるときだけAIを呼ぶ
   releaseAwake();
   _briefLoading(false);
   _renderBriefInto(report, ed, txmap);
