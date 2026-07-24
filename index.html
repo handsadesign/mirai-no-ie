@@ -703,7 +703,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260725050914"></script>
+<script src="brief_render.js?v=20260725052543"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1373,6 +1373,9 @@ function importSessionFile(file) {
       if (b.qa) localStorage.setItem(QA_KEY, b.qa);
       if (b.pay) localStorage.setItem(PAY_KEY, b.pay);
       if (b.receipt) localStorage.setItem(RECEIPT_KEY, b.receipt);
+      // 仕上げ・清書のキャッシュは古い状態と紐づいている可能性があるので破棄
+      // （generatedAtが同じでも中身の対話が違うことがあるため、常に消すのが安全）
+      try { localStorage.removeItem(EDITORIAL_KEY); localStorage.removeItem(TXCLEAN_KEY); } catch(e) {}
       location.reload();
     } catch(e) {
       alert('記録ファイルを読み込めませんでした。「住まいの対話」で保存したファイルかご確認ください。');
@@ -1899,8 +1902,17 @@ const REPORT_PROMPT = `これまでの対話から「生活要望書」をJSON�
 - JSONのみ出力。余分なテキスト一切不要。`;
 
 // 対話（要望書生成のシステム的やりとりを除く）だけのスナップショットを返す
+// 要望書まわりで使う対話履歴。画面上の対話（history）が空のとき——
+// 記録の読み込み直後にまだ「続きから再開」していない場合など——は、
+// 保存済みセッションから読む。これが無いと、空の履歴で仕上げ(EDITORIAL)が
+// 走って要望リストから偽の引用が捏造されたり、対話の記録が消えたりする。
+function sessionHistory() {
+  if (history && history.length) return history;
+  try { const s = loadSession(); return (s && s.history) || []; } catch(e) { return []; }
+}
+
 function conversationOnly() {
-  return history.filter(m =>
+  return sessionHistory().filter(m =>
     typeof m.content === 'string' &&
     !m.content.startsWith('これまでの対話から「生活要望書」をJSON形式で') &&
     !(m.role === 'assistant' && m.content.trim().startsWith('{'))
@@ -2004,7 +2016,7 @@ function _briefClean(t) {
 // 対話（要望書生成のやりとりの手前まで）＋整理済み要望リストを、EDITORIAL生成の素材にする
 function buildEditorialSource(report) {
   const lines = [];
-  for (const m of history) {
+  for (const m of sessionHistory()) {
     const c = m && m.content;
     if (typeof c !== 'string') continue;
     if (c.indexOf('生活要望書」をJSON形式で') >= 0) break;
@@ -2012,6 +2024,9 @@ function buildEditorialSource(report) {
     if (!cc) continue;
     lines.push((m.role === 'user' ? '住まい手' : '聞き手') + ': ' + cc);
   }
+  // 対話が読めない状態で仕上げを作ると、要望リストから「本人の言葉風」の
+  // 引用が捏造される。それは製品の芯（脚色しない）への裏切りなので、止める。
+  if (!lines.length) throw new Error('対話の記録が読み込まれていません。トップの「続きから再開する」で記録を読み込んでから、もう一度お試しください');
   const reportJson = JSON.stringify(report.sections || [], null, 1);
   return '# 対話記録\n' + lines.join('\n') + '\n\n# 整理済みの要望リスト（参考）\n' + reportJson;
 }
@@ -2047,10 +2062,10 @@ function loadCleanMapFor(report) {
   return null;
 }
 
-// historyの話し手発言（n番目）を清書で置き換えた写しを返す。AIの発言はそのまま
+// 履歴の話し手発言（n番目）を清書で置き換えた写しを返す。AIの発言はそのまま
 function cleanedHistoryFrom(map) {
   let k = 0;
-  return history.map(m => {
+  return sessionHistory().map(m => {
     if (!m || m.role !== 'user' || typeof m.content !== 'string') return m;
     const t = map[k++];
     return (typeof t === 'string' && t.trim()) ? { role: 'user', content: t } : m;
@@ -2058,7 +2073,7 @@ function cleanedHistoryFrom(map) {
 }
 
 async function generateTranscriptClean(report, onProgress) {
-  const userTexts = history.filter(m => m && m.role === 'user' && typeof m.content === 'string').map(m => m.content);
+  const userTexts = sessionHistory().filter(m => m && m.role === 'user' && typeof m.content === 'string').map(m => m.content);
   if (!userTexts.length) return null;
   const raw = (await claudeAPI([{ role: 'user', content: JSON.stringify(userTexts) }], 8192, onProgress, { mode: 'transcript' }))
     .replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
@@ -2079,7 +2094,7 @@ async function ensureCleanMap(report) {
 
 function _renderBriefInto(report, ed, txmap) {
   const frame = document.getElementById('brief-frame');
-  const hist = txmap ? cleanedHistoryFrom(txmap) : history;
+  const hist = txmap ? cleanedHistoryFrom(txmap) : sessionHistory();
   frame.srcdoc = renderBrief(report, ed, hist, { transcriptCleaned: !!txmap });
   fitBriefFrame();
 }
