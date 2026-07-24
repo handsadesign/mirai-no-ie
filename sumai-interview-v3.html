@@ -703,7 +703,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260724203913"></script>
+<script src="brief_render.js?v=20260725050914"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1464,7 +1464,12 @@ function resumeSession() {
   const lastAI = [...history].reverse().find(m => m.role === 'assistant');
   if (lastAI) addMsg('ai', cleanText(lastAI.content));
   const doneSections = session.completedSections || [];
-  if (doneSections.length) {
+  if (loadReport()) {
+    // 対話完了・要望書作成済みの再開: 「次の章へ」を出さない。
+    // （出すと完了済みの章へ進む指示がAIに送られ、質問のやり直しが起きる）
+    addMsg('ai', '対話は最後まで完了していて、要望書もできあがっています。右上の「要望書」からいつでも開けます。内容に修正や追加があれば、ここで話しかけてください。要望書は何度でも作り直せます。');
+    document.getElementById('rep-hdr-btn')?.classList.add('visible');
+  } else if (doneSections.length) {
     const last = doneSections[doneSections.length - 1];
     const gated = maybeAddPaywall(last);
     // 支払い済みなのに次ステップの案内が無いと行き止まりになる
