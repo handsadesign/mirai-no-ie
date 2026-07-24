@@ -500,7 +500,7 @@
 // 画面表示のみ: ページを紙のシートとして分けて見せる（印刷には影響しない）
 "@media screen{" +
 "body{background:#e9e3d7;margin:0;padding:12px 0 32px;}" +
-".page,.tx{background:var(--paper);margin:0 auto 20px auto;box-shadow:0 1px 3px rgba(0,0,0,.10),0 6px 22px rgba(0,0,0,.10);}" +
+".page,.tx{background:var(--paper);width:100%;max-width:152.4mm;margin:0 auto 20px auto;box-shadow:0 1px 3px rgba(0,0,0,.10),0 6px 22px rgba(0,0,0,.10);}" +
 ".page{min-height:216mm;}" +
 ".page:not(.pg-cover){padding:20mm 18mm;}" +
 ".pg-cover{padding:26mm 22mm;}" +
