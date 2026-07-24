@@ -465,7 +465,8 @@
 ".reqlist{column-count:2;column-gap:9mm;}\n.reqlist li{break-inside:avoid;padding-top:1.4mm;padding-bottom:1.4mm;}\n" +
 ".mat-cols{display:table;width:100%;margin-top:3mm;}\n.mat-col{display:table-cell;width:50%;vertical-align:top;}\n" +
 ".mat-col:first-child{padding-right:8mm;border-right:.6pt solid var(--hair);}\n.mat-col:last-child{padding-left:8mm;}\n" +
-".mat-lab{font-size:9pt;letter-spacing:1pt;color:var(--clay);margin-bottom:4mm;font-weight:500;}\n.matlist li{padding-top:2.8mm;padding-bottom:2.8mm;line-height:1.5;}\n" +
+// 質感の項目は数が多いと最後の1行だけ次ページに落ちるので、行間を詰めて改行も避ける
+".mat-lab{font-size:9pt;letter-spacing:1pt;color:var(--clay);margin-bottom:3mm;font-weight:500;}\n.matlist li{padding-top:1.9mm;padding-bottom:1.9mm;line-height:1.45;break-inside:avoid;}\n" +
 ".memolist{margin-top:4mm;column-count:1;}\n.memolist li{font-size:9.6pt;padding:2.8mm 0 2.8mm 6mm;}\n" +
 ".about-wrap{margin-top:34mm;max-width:112mm;}\n.about-h{font-weight:300;font-size:16pt;margin:0 0 8mm 0;color:var(--ink);}\n" +
 ".about-p{font-size:10.5pt;line-height:2.2;color:var(--ink2);font-weight:400;}\n" +
