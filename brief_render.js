@@ -29,6 +29,10 @@
     '心地よいと感じた場所のことを、これからも折にふれて思い返してみてください。' +
     'その一つひとつが、これからの住まいの輪郭を、少しずつ確かなものにしていきます。';
 
+  // 対話の記録の締め。進行のやりとりを省いた結果、記録が唐突に終わってしまうため、
+  // 聞き手からの結びとして常に最後に置く（誰の一冊でも共通）。
+  var TX_CLOSING = '要望書の作成に移ります。長い時間に渡り対話してくださりありがとうございました。';
+
   var APP_MARK = 'みらいの家 — mirai no ie';
   var SHARE_URL = 'sumai-dialogue.com';
   var SHARE_TAGLINE = '専門家に会う前に、自分の言葉で暮らしを整理する時間。';
@@ -393,6 +397,7 @@
         'まとめや確認などの進行のやりとりは省き、会話は要約せずそのまま残しています。' +
         (OPTS.transcriptCleaned ? '音声入力の明らかな誤変換のみ、意味を変えずに整えています。' : '') +
         'かぎ括弧「 」が住まい手の言葉です。</p>', 'plain');
+      rows += '<div class="tx-pair tx-end"><div class="tx-q">' + esc(TX_CLOSING) + '</div></div>';
       return coverPg + '<section class="tx" style=\'string-set: sec "TRANSCRIPT";\'>' + rows + '</section>';
     }
 
@@ -487,6 +492,7 @@
 ".share-appeal-tag{font-size:9pt;line-height:1.6;color:var(--ink2);}\n" +
 ".share-url{font-size:9.5pt;letter-spacing:.5pt;color:var(--clay);}\n" +
 ".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:8mm;}\n" +
+".tx-end{margin-top:10mm;padding-top:6mm;border-top:.6pt solid var(--hair);}\n" +
 // 問いと答えは同じ大きさ（対等な対話として見せる）。話者の言葉は書体と余白でフォーカスする
 ".tx-q{font-family:'Noto Sans JP',sans-serif;font-size:9.6pt;line-height:1.8;color:var(--ink2);font-weight:300;margin-bottom:3.2mm;}\n" +
 ".tx-a{font-family:'Lora','Noto Serif JP',serif;font-size:9.6pt;line-height:1.95;color:var(--ink);font-weight:400;padding:1mm 0 1mm 5mm;border-left:1pt solid var(--clay);max-width:118mm;}\n" +
