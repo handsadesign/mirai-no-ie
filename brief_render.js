@@ -5,7 +5,7 @@
  *
  * - report:    アプリの要望書JSON（{ sections:[{id,label,items}], generatedAt } と session履歴は別途）
  * - editorial: AIが生成したEDITORIAL層
- *   { purpose_quote, self_quote, who_lede, timeline:[[t,a]], rhythm_note,
+ *   { speaker, purpose_quote, self_quote, who_lede, timeline:[[t,a]], rhythm_note,
  *     values:[{label,quote}], themes:[{jp,en,evidence[],wish[]}],
  *     rooms:[{id,essence}], statement, materials?:{keep:[],avoid:[]} }
  *
@@ -42,8 +42,17 @@
     var n = num ? '<span class="folio-index">' + esc(num) + '</span>' : '';
     return '<div class="kickrow">' + n + '<span class="kicker">' + esc(latin) + '</span></div>';
   }
+  // 話し手の発言に鉤括弧を付ける（既に付いていれば二重にしない）。
+  // 対話している感じを出すため、本人の言葉には全て付ける。
+  // 編集で組み立てた文（statement・essence等）は発言ではないので付けない。
+  function speak(s) {
+    var t = String(s == null ? '' : s).trim();
+    if (!t) return '';
+    return t.charAt(0) === '「' ? t : '「' + t + '」';
+  }
   function quote(text) {
-    return '<blockquote class="q">' + esc(text) + '</blockquote>';
+    if (!text) return '';
+    return '<blockquote class="q">' + esc(speak(text)) + '</blockquote>';
   }
   function lines(xs, cls) {
     if (!xs || !xs.length) return '';
@@ -58,8 +67,9 @@
   }
 
   // ── レンダラ本体 ────────────────────────────────────────────────────────────
-  function renderBrief(report, editorial, history) {
+  function renderBrief(report, editorial, history, opts) {
     var ed = editorial || {};
+    var OPTS = opts || {};
     var sections = (report && report.sections) || [];
     var secMap = {};
     sections.forEach(function (s) { secMap[s.id] = s; });
@@ -97,6 +107,7 @@
       .filter(function (r) { return secMap[r.id]; })
       .map(function (r) { return [roomName(r.id), r.id, r.essence || '']; });
     var STATEMENT = ed.statement || '';
+    var SPEAKER = String(ed.speaker || '').trim();
 
     // ── ページ関数 ──
     function cover() {
@@ -110,9 +121,17 @@
       return page('', inner, 'cover');
     }
     function about() {
+      // 話し手が分かる場合は、誰の言葉かを段落を分けて明記する（一人の視点から
+      // 編まれた資料であることも正直に書く。家族の様子は話し手の目を通したもの）。
+      var speakerP = '';
+      if (SPEAKER) {
+        speakerP = '<p class="about-p">' +
+          esc('話し手は、' + SPEAKER + 'さん。かぎ括弧「 」の中は、' + SPEAKER + 'さん自身の言葉です。' +
+              'ご家族の暮らしぶりも、' + SPEAKER + 'さんの目を通して語られています。') + '</p>';
+      }
       var inner = kicker('ABOUT') +
         '<div class="about-wrap"><h2 class="about-h">この資料について</h2>' +
-        '<p class="about-p">' + esc(ABOUT) + '</p></div>';
+        '<p class="about-p">' + esc(ABOUT) + '</p>' + speakerP + '</div>';
       return page('ABOUT', inner, 'plain');
     }
     // シェア用ページ（2ページ目）。誰の要望書か特定できる情報（氏名・日付・
@@ -121,28 +140,30 @@
     function shareQuotes() {
       // 同じ言葉が複数フィールドに載っていることがある（purpose_quoteと
       // valuesの引用が一致する等）ため、追加時に重複を除く。
-      var qs = [];
-      function add(t) {
+      var qs = [], seen = [];
+      // sp=true は本人の発言（鉤括弧を付ける）。statementは編集で作った文なので付けない
+      function add(t, sp) {
         if (qs.length >= 4 || !t) return;
         var s = String(t).trim();
-        if (!s || qs.indexOf(s) !== -1) return;
-        qs.push(s);
+        if (!s || seen.indexOf(s) !== -1) return;
+        seen.push(s);
+        qs.push({ t: s, sp: !!sp });
       }
-      add(Q_PURPOSE);
-      VALUES.forEach(function (v) { add(v[2]); });
-      add(STATEMENT);
-      THEMES.forEach(function (t) { add((t[4] || [])[0]); });
+      add(Q_PURPOSE, true);
+      VALUES.forEach(function (v) { add(v[2], true); });
+      add(STATEMENT, false);
+      THEMES.forEach(function (t) { add((t[4] || [])[0], true); });
       return qs;
     }
     function shareToc() {
-      return ['住まいづくりの目的', '住まい手', '一日の流れ', '大切にしたいこと', '部屋別の要件', '対話の記録'];
+      return ['住まい手', '住まいづくりの目的', '一日の流れ', '大切にしたいこと', '部屋別の要件', '対話の記録'];
     }
     function shareThemeNames() {
       return THEMES.map(function (t) { return t[1]; }).filter(Boolean);
     }
     function sharePage() {
       var quotesHtml = shareQuotes().map(function (q) {
-        return '<blockquote class="share-q">' + esc(q) + '</blockquote>';
+        return '<blockquote class="share-q">' + esc(q.sp ? speak(q.t) : q.t) + '</blockquote>';
       }).join('');
       var tocHtml = lines(shareToc(), 'share-toc');
       var themeNames = shareThemeNames();
@@ -161,7 +182,7 @@
       return page('', inner, 'share');
     }
     function purpose() {
-      var body = kicker('PURPOSE', '01') +
+      var body = kicker('PURPOSE', '02') +
         '<h1 class="ph">住まいづくりの目的</h1>' +
         quote(Q_PURPOSE) +
         '<div class="purpose-list">' + lines(items('purpose'), 'biglist') + '</div>';
@@ -169,7 +190,7 @@
     }
     function who() {
       var facts = items('profile_now').slice(0, 8);
-      var body = kicker('USER', '02') +
+      var body = kicker('USER', '01') +
         '<h1 class="ph">住まい手</h1>' +
         '<p class="lede">' + esc(WHO_LEDE) + '</p>' +
         quote(Q_SELF) +
@@ -191,14 +212,14 @@
       var blocks = VALUES.map(function (v) {
         return '<div class="val"><div class="val-n">' + esc(v[0]) + '</div>' +
           '<div class="val-body"><div class="val-t">' + esc(v[1]) + '</div>' +
-          '<div class="val-q">' + esc(v[2]) + '</div></div></div>';
+          '<div class="val-q">' + (v[2] ? esc(speak(v[2])) : '') + '</div></div></div>';
       }).join('');
       var body = kicker('VALUES', '04') +
         '<h1 class="ph">大切にしたいこと</h1><div class="vals">' + blocks + '</div>';
       return page('VALUES', body);
     }
     function theme(num, jp, en, evidence, wish) {
-      var ev = (evidence || []).map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('');
+      var ev = (evidence || []).map(function (e) { return '<li>' + esc(speak(e)) + '</li>'; }).join('');
       var wi = (wish || []).map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('');
       var body = kicker('DESIGN THEME — ' + num) +
         '<div class="th-head"><h1 class="th-jp">' + esc(jp) + '</h1>' +
@@ -274,16 +295,65 @@
       t = t.replace(/[ \t]+\n/g, '\n');
       return t.replace(/\n{3,}/g, '\n\n').trim();
     }
+    // ── 運用上のやりとり（まとめ・確認・保存・案内）を清書から除くためのルール ──
+    // 対話の記録に残すのは「会話」だけ。まとめの読み上げや進行の定型文は、
+    // 要望書本体と重複する運用文なので省く（会話の中身は削らない・要約しない）。
+    var BTN_USER = /^(準備ができました。|続けます。)/; // 画面のボタンが自動送信する定型文
+    var CONFIRM_USER = /^(はい|ええ|うん|OK|ok|大丈夫|今のところ大丈夫|問題ない)/;
+    var SUMMARY_START = /まとめさせてください|まとめますね|のまとめ|ここまでの(話|内容)を(一度)?まとめ/;
+    var CONFIRM_ASK = /この内容でよろしいですか|追加や修正|修正や追加|追加したいことや修正したいこと/;
+    var OPS_PARA = /^(ありがとうございます、?)?(それでは)?保存します|保存しますね|このまま続けますか|今日はここまでにしますか|ここで終わりです|お疲れ様でした|要望書を作成します/;
+    function stripOps(text) {
+      var paras = text.split(/\n\n/);
+      var out = [];
+      for (var k = 0; k < paras.length; k++) {
+        var p = paras[k].trim();
+        if (!p) continue;
+        // まとめが始まったら、その段落以降（まとめ本文＋確認）は全て落とす
+        if (SUMMARY_START.test(p)) break;
+        if (CONFIRM_ASK.test(p)) continue;
+        if (OPS_PARA.test(p)) continue;
+        out.push(p);
+      }
+      return out.join('\n\n');
+    }
     function transcript(hist) {
       if (!hist || !hist.length) return '';
       var conv = [];
+      var prevAskedConfirm = false, skipNextBtnUser = false;
       for (var i = 0; i < hist.length; i++) {
         var m = hist[i], c = m && m.content;
         if (typeof c !== 'string') continue;
         if (c.indexOf('生活要望書」をJSON形式で') >= 0) break;
-        c = cleanTurn(c);
-        if (!c) continue;
-        conv.push([m.role, c]);
+        if (m.role !== 'user') {
+          var t = cleanTurn(c);
+          if (c.indexOf('【内省カード】') >= 0) {
+            // フレーミング（サービス説明〜内省カード）だけを落とし、同じ発言の前半にある会話は残す
+            var fp = t.split(/\n\n/), fkeep = [];
+            for (var k0 = 0; k0 < fp.length; k0++) {
+              if (/お話しさせてください|「?みらいの家」?について|住まいの対話について/.test(fp[k0])) break;
+              fkeep.push(fp[k0]);
+            }
+            t = fkeep.join('\n\n').trim();
+            prevAskedConfirm = false; skipNextBtnUser = true;
+            if (t) conv.push([m.role, t]);
+            continue;
+          }
+          if (c.indexOf('ホームワーク') >= 0) { prevAskedConfirm = false; skipNextBtnUser = true; continue; }
+          prevAskedConfirm = CONFIRM_ASK.test(t) || SUMMARY_START.test(t);
+          t = stripOps(t);
+          if (!t) { skipNextBtnUser = true; continue; }
+          conv.push([m.role, t]);
+          skipNextBtnUser = false;
+        } else {
+          var u = cleanTurn(c);
+          if (!u) continue;
+          // ボタンの定型文と、まとめへの確認返事（「大丈夫です」等）は会話ではないので省く
+          if (BTN_USER.test(u)) { skipNextBtnUser = false; continue; }
+          if (prevAskedConfirm && CONFIRM_USER.test(u) && u.length <= 20) { prevAskedConfirm = false; continue; }
+          if (skipNextBtnUser && CONFIRM_USER.test(u) && u.length <= 20) { skipNextBtnUser = false; continue; }
+          conv.push([m.role, u]);
+        }
       }
       // 軽い重複整理: 直前と同じ答えの繰り返しを、間の再質問ごと畳む。相づちは残す。
       var STOP = { 'はい':1,'いいえ':1,'うん':1,'ううん':1,'ええ':1,'そう':1,'そうです':1,
@@ -306,23 +376,26 @@
         var role2 = conv[j][0], text2 = conv[j][1];
         if (role2 !== 'user' && j + 1 < conv.length && conv[j + 1][0] === 'user') {
           rows += '<div class="tx-pair"><div class="tx-q">' + esc(text2).replace(/\n/g, '<br>') +
-            '</div><div class="tx-a">' + esc(conv[j + 1][1]).replace(/\n/g, '<br>') + '</div></div>';
+            '</div><div class="tx-a">' + esc(speak(conv[j + 1][1])).replace(/\n/g, '<br>') + '</div></div>';
           j += 2;
         } else {
           var cls = (role2 === 'user') ? 'tx-a' : 'tx-q';
-          rows += '<div class="tx-pair"><div class="' + cls + '">' + esc(text2).replace(/\n/g, '<br>') + '</div></div>';
+          var txt = (role2 === 'user') ? speak(text2) : text2;
+          rows += '<div class="tx-pair"><div class="' + cls + '">' + esc(txt).replace(/\n/g, '<br>') + '</div></div>';
           j += 1;
         }
       }
       var coverPg = page('APPENDIX', kicker('APPENDIX') +
         '<h1 class="ph">対話の記録</h1>' +
-        '<p class="lede">この要望書のもとになった対話を、要約せず、そのまま収めています。' +
-        '細字が問いかけ、太字が住まい手の言葉です。</p>', 'plain');
+        '<p class="lede">この要望書のもとになった対話を収めています。' +
+        'まとめや確認などの進行のやりとりは省き、会話は要約せずそのまま残しています。' +
+        (OPTS.transcriptCleaned ? '音声入力の明らかな誤変換のみ、意味を変えずに整えています。' : '') +
+        'かぎ括弧「 」が住まい手の言葉です。</p>', 'plain');
       return coverPg + '<section class="tx" style=\'string-set: sec "TRANSCRIPT";\'>' + rows + '</section>';
     }
 
     var BODY =
-      cover() + sharePage() + about() + purpose() + who() + rhythm() + values() +
+      cover() + sharePage() + about() + who() + purpose() + rhythm() + values() +
       THEMES.map(function (t) { return theme(t[0], t[1], t[2], t[3], t[4]); }).join('') +
       requirements() + aesthetics() +
       designerMemo() + contemplation() + statement() +
@@ -408,9 +481,19 @@
 ".share-appeal-name{font-size:9.5pt;color:var(--ink);margin-bottom:1.5mm;}\n" +
 ".share-appeal-tag{font-size:9pt;line-height:1.6;color:var(--ink2);}\n" +
 ".share-url{font-size:9.5pt;letter-spacing:.5pt;color:var(--clay);}\n" +
-".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:6mm;}\n" +
-".tx-q{font-family:'Noto Sans JP',sans-serif;font-size:8.4pt;line-height:1.7;color:var(--faint);font-weight:400;margin-bottom:2mm;}\n" +
-".tx-a{font-family:'Lora','Noto Serif JP',serif;font-size:10pt;line-height:1.85;color:var(--ink);font-weight:400;padding-left:5mm;border-left:1pt solid var(--hair);}\n";
+".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:8mm;}\n" +
+// 問いと答えは同じ大きさ（対等な対話として見せる）。話者の言葉は書体と余白でフォーカスする
+".tx-q{font-family:'Noto Sans JP',sans-serif;font-size:9.6pt;line-height:1.8;color:var(--ink2);font-weight:300;margin-bottom:3.2mm;}\n" +
+".tx-a{font-family:'Lora','Noto Serif JP',serif;font-size:9.6pt;line-height:1.95;color:var(--ink);font-weight:400;padding:1mm 0 1mm 5mm;border-left:1pt solid var(--clay);max-width:118mm;}\n" +
+// 画面表示のみ: ページを紙のシートとして分けて見せる（印刷には影響しない）
+"@media screen{" +
+"body{background:#e9e3d7;margin:0;padding:12px 0 32px;}" +
+".page,.tx{background:var(--paper);margin:0 auto 20px auto;box-shadow:0 1px 3px rgba(0,0,0,.10),0 6px 22px rgba(0,0,0,.10);}" +
+".page{min-height:216mm;}" +
+".page:not(.pg-cover){padding:20mm 18mm;}" +
+".pg-cover{padding:26mm 22mm;}" +
+".tx{padding:16mm 18mm;}" +
+"}\n";
 
   global.renderBrief = renderBrief;
   global.BRIEF_CSS = BRIEF_CSS;

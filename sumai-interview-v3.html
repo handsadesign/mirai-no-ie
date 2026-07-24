@@ -102,11 +102,11 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 /* reflection card */
 .rc{margin:0 0 20px 40px;background:linear-gradient(140deg,#f2ede6,#e8f2ef);border:1px solid var(--ink-faint);border-left:3px solid var(--accent);border-radius:var(--r);padding:16px 18px}
-.rc-eye{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-mid);margin-bottom:11px}
-.rc-q{font-size:13px;color:var(--ink-mid);line-height:1.8;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;gap:9px}
+.rc-eye{font-size:13px;font-weight:600;letter-spacing:.08em;color:var(--accent-mid);margin-bottom:11px}
+.rc-q{font-size:14px;color:var(--ink);line-height:1.9;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;gap:9px}
 .rc-q:last-of-type{border-bottom:none}
 .rc-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:9px}
-.rc-foot{margin-top:12px;font-size:12px;color:var(--ink-light);font-style:italic}
+.rc-foot{margin-top:12px;font-size:13px;color:var(--ink-mid)}
 
 /* save indicator */
 .save-ind{margin:0 0 16px 0;padding:9px 14px;background:#f0f7f0;border:1px solid #b8d8b8;border-radius:var(--r);font-size:12px;color:#2d6a2d;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -345,6 +345,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .paygate-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:12px 32px;font-size:14px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;transition:background .2s}
 .paygate-btn:hover{background:var(--accent-mid)}
 .paygate-note{font-size:10px;color:var(--ink-light);margin-top:10px}
+.paygate-testnote{font-size:13px;font-weight:500;color:var(--accent-mid);background:var(--accent-dim);border:1px solid var(--accent-light);border-radius:var(--r-sm);padding:9px 14px;margin-top:14px;line-height:1.6}
 .restore-link{text-decoration:underline;text-underline-offset:2px;cursor:pointer;color:var(--ink-mid)}
 /* テスト決済画面 */
 .mock-pay-ov{position:fixed;inset:0;background:rgba(26,26,24,.45);z-index:400;display:none;align-items:center;justify-content:center;padding:24px}
@@ -702,7 +703,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260723161513"></script>
+<script src="brief_render.js?v=20260724203913"></script>
 
 <script>
 // ── API接続設定 ──
@@ -801,10 +802,10 @@ function showNotice() {
 const PRICING = {
   live: false,  // 決済導入前は false（説明ページに「まだ請求は発生しない」注記が出る）
   stages: [
-    { steps: 'STEP 0〜1', label: 'はじめに・目的の整理', desc: '家族構成と、住まいづくりの目的をAIとの対話で整理します。ここまでのまとめもお渡しします。', price: 0,    after: null },
-    { steps: 'STEP 2〜3', label: '暮らしと質感の対話',   desc: '一日の暮らしのトレースと、空間の質感・好みの整理。対話の中心となる部分です。',       price: 600,  after: 'STEP0-1',
+    { steps: '第1章', label: 'はじめに・目的の整理', desc: '家族構成と、住まいづくりの目的をAIとの対話で整理します。ここまでのまとめもお渡しします。', price: 0,    after: null },
+    { steps: '第2〜3章', label: '暮らしと質感の対話',   desc: '一日の暮らしのトレースと、空間の質感・好みの整理。対話の中心となる部分です。',       price: 600,  after: 'STEP0-1',
       unlocks: ['一日の暮らしを朝から夜までたどるAIとの対話', '好きな空間の質感・雰囲気を言葉にする対話', 'この区間の対話を、いつでも中断・再開できます'] },
-    { steps: 'STEP 4',    label: '優先順位の整理と要望書', desc: 'プランニング判断の整理と、設計者や工務店に渡せる「住まい作り要望書」の作成。',            price: 1200, after: 'STEP3',
+    { steps: '第4章',    label: '優先順位の整理と要望書', desc: 'プランニング判断の整理と、設計者や工務店に渡せる「住まい作り要望書」の作成。',            price: 1200, after: 'STEP3',
       unlocks: ['何を大切にし何を手放すかを整理するAIとの対話', '「暮らしと住まいの要望書」の作成（何度でも作り直せます）', '要望書の印刷・PDF保存・匿名シェア'] },
   ],
 };
@@ -898,7 +899,7 @@ function maybeAddPaywall(label) {
     <button class="paygate-btn" onclick="openCheckout('${label}')">支払って進む</button>
     ${PRICING.live
       ? `<div class="paygate-note"><span class="restore-link" onclick="redeemRestoreCode()">購入復元コードをお持ちの方はこちら</span></div>`
-      : '<div class="paygate-note">※テスト公開中のため、実際の請求は発生しません</div>'}
+      : '<div class="paygate-testnote">いまは試験運用中のため、実際の請求は発生しません</div>'}
   `;
   appendToChat(card, true);
   return true;
@@ -1136,8 +1137,8 @@ function addReflectionCard() {
     <div class="rc-eye">みらいの家を考えはじめる</div>
     <div class="rc-q"><div class="rc-dot"></div><div>今の制約はいったん外して、5年後・10年後の自分と家族を自由に思い描いてみてください。</div></div>
     <div class="rc-q"><div class="rc-dot"></div><div>あなたはどんな人になっているでしょうか。家族はどうなっているでしょうか。あるいはどうなっていたいでしょうか。</div></div>
-    <div class="rc-foot">答えに正解はありません。一緒にゆっくり整理していきましょう。</div>
-    <button class="rc-next" onclick="reflectionNext(this)">考えを整理できたら — 次に進む</button>
+    <div class="rc-foot">答えに正解はありません。自分に素直に、自由に思い描いてみてください。</div>
+    <button class="rc-next" onclick="reflectionNext(this)">みらいがイメージできたら — 次に進む</button>
   `;
   appendToChat(card);
 }
@@ -1216,7 +1217,10 @@ function cleanText(text) {
 function addSaveIndicator(label) {
   const el = document.createElement('div');
   el.className = 'save-ind';
-  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">${label} を保存しました</span><span class="save-hint"> — 修正・追加はいつでも話しかけてください</span>`;
+  // 対話自体は常時自動保存されているため「保存しました」は誤解を招く。
+  // この表示は「章の内容が確認済みとして確定した」という節目の合図。
+  const nice = SECTION_LABELS[label] || label;
+  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">「${nice}」の内容がまとまりました</span><span class="save-hint"> — 修正・追加はいつでも話しかけてください</span>`;
   appendToChat(el);
 }
 
@@ -1244,34 +1248,36 @@ function sendNextStep(btn, msg) {
 
 // ── マルチセッション管理 ──
 const SESSION_KEY = 'mirai-no-ie-v05';
+// 利用者向けの章名。内部ID（STEP2B等）は配管としてそのまま使い、
+// 見える言葉は「章」で統一する（成果物が一冊の本である世界観に合わせる）
 const SECTION_LABELS = {
-  'STEP0-1': 'STEP 0+1 — 家族構成・住まいづくりの目的',
-  'STEP2A':  'STEP 2A — 明るい時間（朝〜夕方）',
-  'STEP2B':  'STEP 2B — 夜の時間（夕方〜就寝）',
-  'STEP3':   'STEP 3 — 空間の質感・インテリアの好み',
+  'STEP0-1': '第1章 目的とみらい',
+  'STEP2A':  '第2章 一日の暮らし・朝の部',
+  'STEP2B':  '第2章 一日の暮らし・夜の部',
+  'STEP3':   '第3章 空間の質感と好み',
 };
 
 const STEP_NEXT_CONFIGS = {
   'STEP0-1': {
-    label: 'NEXT → STEP 2',
+    label: '次へ → 第2章 一日の暮らし',
     title: '次は暮らしのタイムテーブルを振り返ります。できるだけ1週間ほど実際の暮らしをメモしてから始めると、より深い対話ができます。',
-    primaryLabel: 'STEP 2 を始める',
-    primaryMsg: '準備ができました。STEP 2 を始めましょう。',
+    primaryLabel: '第2章を始める',
+    primaryMsg: '準備ができました。第2章（一日の暮らし）を始めましょう。',
     secondaryLabel: null,
   },
   'STEP2B': {
-    label: 'NEXT → STEP 3',
+    label: '次へ → 第3章 空間の質感と好み',
     title: '次はインテリアや空間の雰囲気の好みを探ります。写真などは受け取れないので、どんな場所のどんなところが好きか、言葉で教えてください。色・素材・照明・家具・光・風景・収納など、思いついたことをどうぞ。',
-    primaryLabel: 'このまま STEP 3 へ進む',
-    primaryMsg: '続けます。STEP 3 へ進みましょう。',
+    primaryLabel: 'このまま第3章へ進む',
+    primaryMsg: '続けます。第3章（空間の質感と好み）へ進みましょう。',
     secondaryLabel: '今日はここまでにする',
     secondaryMsg: '今日はここまでにします。',
   },
   'STEP3': {
-    label: 'NEXT → STEP 4',
+    label: '次へ → 第4章 プランニングの価値観',
     title: '次は住まいのプランニングに関わる価値観を整理します。',
-    primaryLabel: 'このまま STEP 4 へ進む',
-    primaryMsg: '続けます。STEP 4 へ進みましょう。',
+    primaryLabel: 'このまま第4章へ進む',
+    primaryMsg: '続けます。第4章（プランニングの価値観）へ進みましょう。',
     secondaryLabel: '今日はここまでにする',
     secondaryMsg: '今日はここまでにします。',
   },
@@ -2023,9 +2029,53 @@ async function generateEditorial(report, onProgress) {
   return ed;
 }
 
-function _renderBriefInto(report, ed) {
+// ── 対話の記録の清書（音声入力の誤変換だけを直す）──
+// 直すのは明らかな誤変換・脱字・句読点のみ（Worker側の校正プロンプトが厳守）。
+// 失敗したら原文のまま表示する（清書は上乗せであって前提にしない）。
+const TXCLEAN_KEY = 'mirai-no-ie-txclean-v1';
+
+function loadCleanMapFor(report) {
+  try {
+    const c = JSON.parse(localStorage.getItem(TXCLEAN_KEY));
+    if (c && c.generatedAt === report.generatedAt && Array.isArray(c.map)) return c.map;
+  } catch(e) {}
+  return null;
+}
+
+// historyの話し手発言（n番目）を清書で置き換えた写しを返す。AIの発言はそのまま
+function cleanedHistoryFrom(map) {
+  let k = 0;
+  return history.map(m => {
+    if (!m || m.role !== 'user' || typeof m.content !== 'string') return m;
+    const t = map[k++];
+    return (typeof t === 'string' && t.trim()) ? { role: 'user', content: t } : m;
+  });
+}
+
+async function generateTranscriptClean(report, onProgress) {
+  const userTexts = history.filter(m => m && m.role === 'user' && typeof m.content === 'string').map(m => m.content);
+  if (!userTexts.length) return null;
+  const raw = (await claudeAPI([{ role: 'user', content: JSON.stringify(userTexts) }], 8192, onProgress, { mode: 'transcript' }))
+    .replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  const arr = JSON.parse(raw);
+  if (!Array.isArray(arr) || arr.length !== userTexts.length) throw new Error('清書の形式が想定と異なります');
+  try { localStorage.setItem(TXCLEAN_KEY, JSON.stringify({ generatedAt: report.generatedAt, map: arr })); } catch(e) {}
+  return arr;
+}
+
+async function ensureCleanMap(report) {
+  let map = loadCleanMapFor(report);
+  if (map) return map;
+  try {
+    map = await generateTranscriptClean(report, n => _briefLoading(true, `対話の記録を清書しています…（${n.toLocaleString()}字）`));
+  } catch(e) { map = null; }
+  return map;
+}
+
+function _renderBriefInto(report, ed, txmap) {
   const frame = document.getElementById('brief-frame');
-  frame.srcdoc = renderBrief(report, ed, history);
+  const hist = txmap ? cleanedHistoryFrom(txmap) : history;
+  frame.srcdoc = renderBrief(report, ed, hist, { transcriptCleaned: !!txmap });
   fitBriefFrame();
 }
 
@@ -2067,12 +2117,13 @@ async function openBrief() {
   if (!report) { alert('要望書データが見つかりません。'); return; }
   document.getElementById('brief-ov').classList.add('open');
   let ed = loadEditorialFor(report);
-  if (ed) { _briefLoading(false); _renderBriefInto(report, ed); return; }
+  let txmap = loadCleanMapFor(report);
+  if (ed && txmap) { _briefLoading(false); _renderBriefInto(report, ed, txmap); return; }
   // 初回オープン or 要望が変わった → 生成
   _briefLoading(true, '要望書を仕上げています…');
   keepAwake();
   try {
-    ed = await generateEditorial(report, n => _briefLoading(true, `要望書を仕上げています…（${n.toLocaleString()}字）`));
+    if (!ed) ed = await generateEditorial(report, n => _briefLoading(true, `要望書を仕上げています…（${n.toLocaleString()}字）`));
   } catch(e) {
     releaseAwake();
     document.getElementById('brief-ov').classList.remove('open');
@@ -2080,9 +2131,10 @@ async function openBrief() {
     alert(`要望書の作成でエラーが発生しました（${e.message}）。少し時間をおいて、もう一度お試しください。`);
     return;
   }
+  if (!txmap) txmap = await ensureCleanMap(report);  // 失敗時はnull（原文のまま）
   releaseAwake();
   _briefLoading(false);
-  _renderBriefInto(report, ed);
+  _renderBriefInto(report, ed, txmap);
 }
 
 // 「作り直す」→ 対話のまとめ（土台=report）から作り直し、仕上げ(editorial)も更新する。
@@ -2104,8 +2156,10 @@ async function regenerateBrief() {
     // ② 仕上げ(editorial)を作り直す（generatedAt に紐づけて保存）
     const ed = await generateEditorial(report, n =>
       _briefLoading(true, `要望書を仕上げています…（${n.toLocaleString()}字）`));
+    // ③ 対話の記録の清書も作り直す（失敗時は原文のまま）
+    const txmap = await ensureCleanMap(report);
     _briefLoading(false);
-    _renderBriefInto(report, ed);
+    _renderBriefInto(report, ed, txmap);
   } catch(e) {
     _briefLoading(false);
     alert(`作り直しでエラーが発生しました（${e.message}）。`);
@@ -2306,7 +2360,7 @@ function start() {
 
   setTimeout(() => {
     hideTyping();
-    addMsg('ai', '良い家づくりは、良い設計者や工務店を見つけることから始まるわけではありません。\n\nその前に大切なことがあります。自分自身の暮らしと、向き合う時間です。\n\n設計者や工務店は家のプロです。でも、あなたの人生のプロではありません。どんな時間を大切にしたいか、どんな自分でいたいか——それはあなた自身にしか分かりません。\n\nこの対話を通じて、その問いを一緒に整理していきましょう。');
+    addMsg('ai', '良い家づくりは、良い相談相手を見つけることから始まるわけではありません。\n\nその前に大切なことがあります。自分自身の暮らしと、向き合う時間です。\n\n家のプロはたくさんいます。でも、あなたの暮らしのプロは、あなたしかいません。どんな時間を大切にしたいか、どんな自分でいたいか——それはあなた自身にしか分かりません。\n\nこの対話を通じて、その問いを一緒に整理していきましょう。');
 
     setTimeout(() => {
       showTyping();
