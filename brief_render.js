@@ -159,27 +159,40 @@
       THEMES.forEach(function (t) { add((t[4] || [])[0], true); });
       return qs;
     }
+    // 目次はこの一冊に実際に載っている章だけを並べる。設計テーマと部屋名は
+    // その人固有の言葉なので、目次に出すこと自体が中身の紹介になる。
     function shareToc() {
-      return ['住まい手', '住まいづくりの目的', '一日の流れ', '大切にしたいこと', '部屋別の要件', '対話の記録'];
-    }
-    function shareThemeNames() {
-      return THEMES.map(function (t) { return t[1]; }).filter(Boolean);
+      var rows = [];
+      function add(name, sub) { rows.push([name, sub || '']); }
+      add('住まい手'); add('住まいづくりの目的'); add('一日の流れ');
+      if (items('future').length) add('これからの暮らし');
+      add('大切にしたいこと');
+      if (items('priorities').length) add('ゆずれないこと');
+      if (items('belongings').length) add('物との向き合い方');
+      if (items('issues').length) add('いまの困りごと');
+      var themeNames = THEMES.map(function (t) { return t[1]; }).filter(Boolean);
+      if (themeNames.length) add('設計テーマ', themeNames.join('・'));
+      var roomNames = ROOMS.map(function (r) { return r[0]; }).filter(Boolean);
+      if (roomNames.length) add('部屋別の要件', roomNames.join('・'));
+      if (items('aesthetics').length || items('aesthetics_avoid').length) add('質感と好み');
+      if (items('planning').length) add('プランニングの判断');
+      if (items('designer_memo').length) add('着眼点');
+      add('対話の記録', 'もとになった対話をそのまま');
+      return rows;
     }
     function sharePage() {
       var quotesHtml = shareQuotes().map(function (q) {
         return '<blockquote class="share-q">' + esc(q.sp ? speak(q.t) : q.t) + '</blockquote>';
       }).join('');
-      var tocHtml = lines(shareToc(), 'share-toc');
-      var themeNames = shareThemeNames();
-      var themeHtml = themeNames.length ?
-        '<div class="share-tocwrap"><div class="share-toc-lbl">大切な' + themeNames.length + 'つのテーマ</div>' +
-        lines(themeNames, 'share-toc') + '</div>' : '';
+      var tocHtml = '<ul class="share-toc">' + shareToc().map(function (r) {
+        return '<li' + (r[1] ? ' class="wide"' : '') + '><span class="tc-n">' + esc(r[0]) + '</span>' +
+          (r[1] ? '<span class="tc-s">' + esc(r[1]) + '</span>' : '') + '</li>';
+      }).join('') + '</ul>';
       var inner =
         '<h1 class="share-ttl">暮らしと住まいの要望書</h1>' +
         '<p class="share-lede">この要望書はAIとの対話から本人の言葉をもとに作成されました。</p>' +
         '<div class="share-quotes">' + quotesHtml + '</div>' +
         '<div class="share-tocwrap"><div class="share-toc-lbl">目次</div>' + tocHtml + '</div>' +
-        themeHtml +
         '<div class="share-appeal"><div class="share-appeal-name">住まいの対話</div>' +
         '<div class="share-appeal-tag">' + esc(SHARE_TAGLINE) + '</div></div>' +
         '<div class="share-url">' + esc(SHARE_URL) + '</div>';
@@ -193,11 +206,11 @@
       return page('PURPOSE', body);
     }
     function who() {
-      var facts = items('profile_now').slice(0, 8);
+      var facts = items('profile_now');  // 語られた事実は省かずすべて載せる
       var body = kicker('USER', '01') +
         '<h1 class="ph">住まい手</h1>' +
-        '<p class="lede">' + esc(WHO_LEDE) + '</p>' +
-        quote(Q_SELF) +
+        '<p class="lede tight">' + esc(WHO_LEDE) + '</p>' +
+        '<blockquote class="q small">' + esc(speak(Q_SELF)) + '</blockquote>' +
         '<div class="factgrid">' + lines(facts, 'facts') + '</div>';
       return page('USER', body);
     }
@@ -207,9 +220,14 @@
                '<div class="tl-d">' + esc(r[1]) + '</div></div>';
       }).join('');
       var note = RHYTHM_NOTE ? '<div class="tl-note"><div class="tl-note-lbl">暮らしの習慣</div>' + esc(RHYTHM_NOTE) + '</div>' : '';
+      var detail = items('timetable');
+      var det = detail.length
+        ? '<div class="daydetail"><div class="tl-note-lbl">一日の記録</div>' +
+          lines(detail, 'itemlist') + '</div>'
+        : '';
       var body = kicker('A DAY', '03') +
         '<h1 class="ph">一日の流れ</h1>' +
-        '<div class="timeline">' + rows + '</div>' + note;
+        '<div class="timeline">' + rows + '</div>' + note + det;
       return page('A DAY', body);
     }
     function values() {
@@ -218,7 +236,7 @@
           '<div class="val-body"><div class="val-t">' + esc(v[1]) + '</div>' +
           '<div class="val-q">' + (v[2] ? esc(speak(v[2])) : '') + '</div></div></div>';
       }).join('');
-      var body = kicker('VALUES', '04') +
+      var body = kicker('VALUES', '05') +
         '<h1 class="ph">大切にしたいこと</h1><div class="vals">' + blocks + '</div>';
       return page('VALUES', body);
     }
@@ -250,7 +268,7 @@
       for (var i = 0; i < ROOMS.length; i += 2) chunks.push(ROOMS.slice(i, i + 2));
       chunks.forEach(function (chunk, idx) {
         var head = idx === 0
-          ? kicker('REQUIREMENT', '05')
+          ? kicker('REQUIREMENT', '09')
           : '<div class="kickrow"><span class="kicker">REQUIREMENT</span></div>';
         var title = idx === 0 ? '<h1 class="ph small">部屋別の要件</h1>' : '';
         var blocks = chunk.map(function (r) { return roomBlock(r[0], r[1], r[2]); }).join('');
@@ -267,20 +285,30 @@
       var cols = '';
       if (keep.length) cols += '<div class="mat-col"><div class="mat-lab">目指す質感</div>' + lines(keep, 'matlist') + '</div>';
       if (avoid.length) cols += '<div class="mat-col"><div class="mat-lab">避けたいもの</div>' + lines(avoid, 'matlist') + '</div>';
-      var body = kicker('MATERIAL', '06') +
+      var body = kicker('MATERIAL', '10') +
         '<h1 class="ph">質感と好み</h1>' +
         '<div class="mat-cols">' + cols + '</div>';
       return page('MATERIAL', body);
     }
+    // 対話から抽出された項目を、そのまま載せる汎用ページ。
+    // 話したことが一冊に出てこない（＝拾われていないように見える）のを防ぐ。
+    function listPage(latin, num, jp, sid, lede) {
+      var xs = items(sid);
+      if (!xs.length) return '';
+      var body = kicker(latin, num) + '<h1 class="ph">' + esc(jp) + '</h1>' +
+        (lede ? '<p class="lede">' + esc(lede) + '</p>' : '') +
+        '<div class="itemwrap">' + lines(xs, 'itemlist') + '</div>';
+      return page(latin, body);
+    }
     function designerMemo() {
-      var body = kicker('FOCUS POINT', '08') +
+      var body = kicker('FOCUS POINT', '12') +
         '<h1 class="ph">着眼点</h1>' +
         '<p class="lede">対話の全体から、特に伝えたい要点を。</p>' +
         lines(items('designer_memo'), 'memolist');
       return page('FOCUS POINT', body);
     }
     function contemplation() {
-      var body = kicker('KEEP THINKING', '09') +
+      var body = kicker('KEEP THINKING', '13') +
         '<h1 class="ph">暮らしの思索は続いていく</h1>' +
         '<p class="about-p" style="max-width:112mm; margin-top:2mm">' + esc(CONTEMPLATION) + '</p>';
       return page('KEEP THINKING', body);
@@ -402,9 +430,15 @@
     }
 
     var BODY =
-      cover() + sharePage() + about() + who() + purpose() + rhythm() + values() +
+      cover() + sharePage() + about() + who() + purpose() + rhythm() +
+      listPage('FUTURE', '04', 'これからの暮らし', 'future') +
+      values() +
+      listPage('PRIORITY', '06', 'ゆずれないこと', 'priorities') +
+      listPage('BELONGINGS', '07', '物との向き合い方', 'belongings') +
+      listPage('ISSUES', '08', 'いまの困りごと', 'issues') +
       THEMES.map(function (t) { return theme(t[0], t[1], t[2], t[3], t[4]); }).join('') +
       requirements() + aesthetics() +
+      listPage('PLANNING', '11', 'プランニングの判断', 'planning') +
       designerMemo() + contemplation() + statement() +
       transcript(history);
 
@@ -439,7 +473,8 @@
 ".biglist li{font-size:11.5pt;line-height:1.55;color:var(--ink);font-weight:300;padding:3mm 0 3mm 7mm;text-indent:-7mm;border-bottom:.6pt solid var(--hair);}\n" +
 ".biglist li:last-child{border-bottom:none;}\n.biglist li::before{content:'—';color:var(--clay);margin-right:3.5mm;}\n.purpose-list{margin-top:8mm;max-width:118mm;}\n" +
 // 住まい手の事実リストは1項目だけ次ページに溢れやすいので、行間を詰めて1ページに収める
-".factgrid{margin-top:4mm;}\n.facts{column-count:2;column-gap:9mm;}\n.facts li{break-inside:avoid;padding-top:1.7mm;padding-bottom:1.7mm;line-height:1.55;}\n" +
+".lede.tight{margin-bottom:4mm;line-height:1.85;}\n.q.small{font-size:11pt;line-height:1.8;margin:5mm 0;}\n" +
+".factgrid{margin-top:4mm;}\n.facts{column-count:2;column-gap:9mm;}\n.facts li{break-inside:avoid;padding-top:1.3mm;padding-bottom:1.3mm;line-height:1.5;}\n" +
 // 一日の流れは行数が多く「暮らしの習慣」だけ次ページに落ちやすいので、行の余白を詰める
 ".timeline{margin-top:2mm;border-top:.6pt solid var(--hair);}\n.tl-row{display:table;width:100%;border-bottom:.6pt solid var(--hair);}\n" +
 ".tl-t{display:table-cell;width:26mm;padding:2.2mm 0;vertical-align:top;font-family:'Lora';font-size:10.5pt;color:var(--clay);letter-spacing:.5pt;}\n" +
@@ -467,6 +502,8 @@
 ".mat-col:first-child{padding-right:8mm;border-right:.6pt solid var(--hair);}\n.mat-col:last-child{padding-left:8mm;}\n" +
 // 質感の項目は数が多いと最後の1行だけ次ページに落ちるので、行間を詰めて改行も避ける
 ".mat-lab{font-size:9pt;letter-spacing:1pt;color:var(--clay);margin-bottom:3mm;font-weight:500;}\n.matlist li{padding-top:1.9mm;padding-bottom:1.9mm;line-height:1.45;break-inside:avoid;}\n" +
+".itemwrap{margin-top:4mm;}\n.itemwrap .itemlist{column-count:2;column-gap:9mm;}\n.itemwrap .itemlist li{break-inside:avoid;}\n" +
+".daydetail{margin-top:7mm;}\n.daydetail .itemlist{column-count:2;column-gap:9mm;}\n.daydetail .itemlist li{break-inside:avoid;padding-top:1.6mm;padding-bottom:1.6mm;}\n" +
 ".memolist{margin-top:4mm;column-count:1;}\n.memolist li{font-size:9.6pt;padding:2.8mm 0 2.8mm 6mm;}\n" +
 ".about-wrap{margin-top:34mm;max-width:112mm;}\n.about-h{font-weight:300;font-size:16pt;margin:0 0 8mm 0;color:var(--ink);}\n" +
 ".about-p{font-size:10.5pt;line-height:2.2;color:var(--ink2);font-weight:400;}\n" +
@@ -479,19 +516,21 @@
 ".stmt{font-weight:300;font-size:16pt;line-height:2.4;color:var(--ink);letter-spacing:.5pt;margin:0;}\n" +
 ".stmt-mark{margin-top:20mm;font-size:7.5pt;letter-spacing:1.5pt;color:var(--faint);}\n" +
 ".pg-share{padding-top:2mm;}\n" +
-".share-ttl{font-weight:300;font-size:14pt;letter-spacing:1pt;line-height:1.4;color:var(--ink);margin:0 0 3mm 0;}\n" +
-".share-lede{font-size:9.5pt;line-height:1.6;color:var(--ink2);font-weight:400;margin:0 0 5mm 0;}\n" +
-".share-quotes{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:5mm;}\n" +
-".share-q{font-weight:400;font-size:8.8pt;line-height:1.5;color:var(--ink);margin:0 0 2.4mm 0;padding-left:5mm;border-left:1pt solid var(--clay);}\n" +
-".share-tocwrap{border-top:.8pt solid var(--hair);padding-top:3mm;margin-bottom:4mm;}\n" +
+".share-ttl{font-weight:300;font-size:14.5pt;letter-spacing:1pt;line-height:1.35;color:var(--ink);margin:0 0 2.4mm 0;}\n" +
+".share-lede{font-size:9.2pt;line-height:1.55;color:var(--ink2);font-weight:400;margin:0 0 4.6mm 0;}\n" +
+".share-quotes{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:4.4mm;}\n" +
+".share-q{font-weight:400;font-size:9.8pt;line-height:1.6;color:var(--ink);margin:0 0 3mm 0;padding-left:6mm;border-left:1.2pt solid var(--clay);}\n" +
+".share-tocwrap{border-top:.8pt solid var(--hair);padding-top:3.6mm;margin-bottom:3.6mm;}\n" +
 ".share-toc-lbl{font-size:7.6pt;letter-spacing:2.2pt;text-transform:uppercase;color:var(--clay);font-weight:500;margin-bottom:2.8mm;}\n" +
-".share-toc{column-count:1;}\n" +
-".share-toc li{font-size:8.3pt;line-height:1.7;color:var(--ink2);font-weight:300;padding-left:5mm;text-indent:-5mm;break-inside:avoid;}\n" +
-".share-toc li::before{content:'—';color:var(--clay);margin-right:2.5mm;}\n" +
-".share-appeal{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:4mm;}\n" +
-".share-appeal-name{font-size:9.5pt;color:var(--ink);margin-bottom:1.5mm;}\n" +
+".share-toc{column-count:2;column-gap:7mm;}\n" +
+".share-toc li{font-size:8.1pt;line-height:1.5;color:var(--ink2);font-weight:300;padding:.4mm 0 .4mm 4.5mm;text-indent:-4.5mm;break-inside:avoid;}\n" +
+".share-toc li::before{content:'—';color:var(--clay);margin-right:2mm;}\n" +
+".share-toc li.wide{column-span:all;padding-top:1.4mm;}\n" +
+".share-toc .tc-s{display:block;margin-left:4.5mm;font-size:7.6pt;line-height:1.5;color:var(--faint);}\n" +
+".share-appeal{border-top:.8pt solid var(--hair);padding-top:4mm;margin-bottom:3.4mm;}\n" +
+".share-appeal-name{font-size:11pt;color:var(--ink);margin-bottom:2mm;letter-spacing:.06em;}\n" +
 ".share-appeal-tag{font-size:9pt;line-height:1.6;color:var(--ink2);}\n" +
-".share-url{font-size:9.5pt;letter-spacing:.5pt;color:var(--clay);}\n" +
+".share-url{font-size:9.2pt;letter-spacing:.5pt;color:var(--clay);}\n" +
 ".tx{page-break-before:always;}\n.tx-pair{break-inside:avoid;margin-bottom:8mm;}\n" +
 ".tx-end{margin-top:10mm;padding-top:6mm;border-top:.6pt solid var(--hair);}\n" +
 // 問いと答えは同じ大きさ（対等な対話として見せる）。話者の言葉は書体と余白でフォーカスする
