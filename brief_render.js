@@ -99,8 +99,16 @@
     var Q_PURPOSE = ed.purpose_quote || '';
     var Q_SELF    = ed.self_quote || '';
     var WHO_LEDE  = ed.who_lede || '';
-    var TIMELINE  = (ed.timeline || []).map(function (r) { return [r[0] || '', r[1] || '']; });
-    var RHYTHM_NOTE = ed.rhythm_note || '';
+    // 一日の流れは「文の配列」。旧形式（[時刻, 行動]の配列）は文に畳んで受ける。
+    var TIMELINE = (ed.timeline || []).map(function (r) {
+      if (typeof r === 'string') return r.trim();
+      if (Object.prototype.toString.call(r) === '[object Array]') {
+        var t = (r[0] || '').trim(), a = (r[1] || '').trim();
+        return t ? (t + '　' + a) : a;
+      }
+      return '';
+    }).filter(Boolean);
+    var RHYTHM_NOTE = ed.rhythm_note || '';  // 旧データにだけ存在。流れの末尾に足す
     var VALUES = (ed.values || []).map(function (v, i) {
       return [('0' + (i + 1)).slice(-2), v.label || '', v.quote || ''];
     });
@@ -215,19 +223,18 @@
       return page('USER', body);
     }
     function rhythm() {
-      var rows = TIMELINE.map(function (r) {
-        return '<div class="tl-row"><div class="tl-t">' + esc(r[0]) + '</div>' +
-               '<div class="tl-d">' + esc(r[1]) + '</div></div>';
+      // 朝から夜へ、一本の流れとして並べる。時刻は軸にせず文の中に含める。
+      // 平日／休日の違いや繰り返しの習慣も同じ流れの中に差し込まれている。
+      var flow = TIMELINE.slice();
+      if (RHYTHM_NOTE) flow.push(RHYTHM_NOTE);            // 旧データの補足を末尾に
+      if (!flow.length) flow = items('timetable');        // 仕上げが無いときの保険
+      if (!flow.length) return '';
+      var rows = flow.map(function (t) {
+        return '<div class="fl-row">' + esc(t) + '</div>';
       }).join('');
-      var note = RHYTHM_NOTE ? '<div class="tl-note"><div class="tl-note-lbl">暮らしの習慣</div>' + esc(RHYTHM_NOTE) + '</div>' : '';
-      var detail = items('timetable');
-      var det = detail.length
-        ? '<div class="daydetail"><div class="tl-note-lbl">一日の記録</div>' +
-          lines(detail, 'itemlist') + '</div>'
-        : '';
       var body = kicker('A DAY', '03') +
         '<h1 class="ph">一日の流れ</h1>' +
-        '<div class="timeline">' + rows + '</div>' + note + det;
+        '<div class="dayflow">' + rows + '</div>';
       return page('A DAY', body);
     }
     function values() {
@@ -476,9 +483,9 @@
 ".lede.tight{margin-bottom:4mm;line-height:1.85;}\n.q.small{font-size:11pt;line-height:1.8;margin:5mm 0;}\n" +
 ".factgrid{margin-top:4mm;}\n.facts{column-count:2;column-gap:9mm;}\n.facts li{break-inside:avoid;padding-top:1.3mm;padding-bottom:1.3mm;line-height:1.5;}\n" +
 // 一日の流れは行数が多く「暮らしの習慣」だけ次ページに落ちやすいので、行の余白を詰める
-".timeline{margin-top:2mm;border-top:.6pt solid var(--hair);}\n.tl-row{display:table;width:100%;border-bottom:.6pt solid var(--hair);}\n" +
-".tl-t{display:table-cell;width:26mm;padding:2.2mm 0;vertical-align:top;font-family:'Lora';font-size:10.5pt;color:var(--clay);letter-spacing:.5pt;}\n" +
-".tl-d{display:table-cell;padding:2.2mm 0;vertical-align:top;font-size:9.8pt;line-height:1.5;color:var(--ink2);font-weight:300;}\n" +
+".dayflow{margin-top:2mm;border-top:.6pt solid var(--hair);}\n" +
+".fl-row{border-bottom:.6pt solid var(--hair);padding:3mm 0 3mm 6mm;text-indent:-6mm;font-size:9.8pt;line-height:1.65;color:var(--ink2);font-weight:300;break-inside:avoid;}\n" +
+".fl-row::before{content:'—';color:var(--clay);margin-right:3mm;}\n" +
 ".tl-note{margin-top:5mm;font-size:9.4pt;line-height:1.75;color:var(--ink2);font-weight:300;break-inside:avoid;}\n" +
 ".tl-note-lbl{font-size:8pt;letter-spacing:2pt;color:var(--clay);font-weight:500;margin-bottom:3mm;}\n" +
 ".vals{margin-top:2mm;}\n.val{display:table;width:100%;padding:6mm 0;border-bottom:.6pt solid var(--hair);}\n.val:last-child{border-bottom:none;}\n" +
