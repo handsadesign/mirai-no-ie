@@ -339,7 +339,7 @@
     // ── 運用上のやりとり（まとめ・確認・保存・案内）を清書から除くためのルール ──
     // 対話の記録に残すのは「会話」だけ。まとめの読み上げや進行の定型文は、
     // 要望書本体と重複する運用文なので省く（会話の中身は削らない・要約しない）。
-    var BTN_USER = /^(準備ができました。|続けます。)/; // 画面のボタンが自動送信する定型文
+    var BTN_USER = /^(準備ができました。|続けます。|確認しました。)/; // 画面のボタンが自動送信する定型文
     var CONFIRM_USER = /^(はい|ええ|うん|OK|ok|大丈夫|今のところ大丈夫|問題ない)/;
     var SUMMARY_START = /まとめさせてください|まとめますね|のまとめ|ここまでの(話|内容)を(一度)?まとめ/;
     var CONFIRM_ASK = /この内容でよろしいですか|追加や修正|修正や追加|追加したいことや修正したいこと/;
@@ -381,6 +381,7 @@
             continue;
           }
           if (c.indexOf('ホームワーク') >= 0) { prevAskedConfirm = false; skipNextBtnUser = true; continue; }
+          if (c.indexOf('大切なお約束') >= 0) { prevAskedConfirm = false; skipNextBtnUser = true; continue; }
           prevAskedConfirm = CONFIRM_ASK.test(t) || SUMMARY_START.test(t);
           t = stripOps(t);
           if (!t) { skipNextBtnUser = true; continue; }

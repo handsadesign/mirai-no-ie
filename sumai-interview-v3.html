@@ -317,6 +317,26 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .guide-warn u{text-decoration-color:#c9862a;text-underline-offset:2px}
 .guide-import{text-align:center;font-size:12px;color:var(--ink-light);margin-top:14px}
 .guide-import-link{color:var(--accent-mid);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.guide-logo-sub.tight{margin-bottom:20px}
+.guide-tagline{font-size:13px;color:var(--ink-mid);line-height:1.8;margin:0 0 30px}
+.guide-fine{font-size:12px;color:var(--ink-light);line-height:1.85;margin:0 0 16px}
+.guide-sub-btn{display:block;width:100%;box-sizing:border-box;text-align:center;margin-top:10px;padding:13px;border:1px solid var(--ink-faint);border-radius:var(--r);font-size:14px;font-family:var(--serif);color:var(--ink-mid);background:transparent;cursor:pointer;letter-spacing:.04em;transition:background .2s}
+.guide-sub-btn:hover{background:var(--accent-dim)}
+/* 大切なお約束カード */
+.pc{background:var(--paper);border:1px solid var(--ink-faint);border-radius:var(--r);padding:20px 18px;margin:14px 0}
+.pc-hd{font-family:var(--serif);font-size:16px;color:var(--ink);margin-bottom:12px;letter-spacing:.04em}
+.pc-lead{font-size:13px;color:var(--ink-mid);line-height:1.9;margin-bottom:18px}
+.pc-item{margin-bottom:15px}
+.pc-item strong{display:block;font-size:13.5px;color:var(--ink);font-weight:500;margin-bottom:4px}
+.pc-item div{font-size:12.5px;color:var(--ink-mid);line-height:1.8}
+.pc-note{display:block;margin-top:4px;font-size:11.5px;color:var(--ink-light);line-height:1.75}
+.pc-check{display:flex;gap:9px;align-items:flex-start;margin:18px 0 6px;font-size:13px;color:var(--ink);cursor:pointer}
+.pc-check input{margin-top:3px;flex-shrink:0}
+.pc-next{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:13px;font-size:14px;font-family:var(--serif);cursor:pointer;letter-spacing:.04em;margin-top:8px;opacity:.35;pointer-events:none;transition:opacity .2s,background .2s}
+.pc-next.on{opacity:1;pointer-events:auto}
+.pc-next.on:hover{background:var(--accent-mid)}
+.pc-foot{font-size:12.5px;color:var(--ink-mid);line-height:1.9;margin-top:16px;padding-top:14px;border-top:1px solid var(--ink-faint)}
+.pc-sub{font-size:12px;color:var(--ink-light);line-height:1.8;margin-top:14px}
 .inapp-banner{position:fixed;top:0;left:0;right:0;z-index:300;background:#b3541e;color:#fff;font-size:12px;line-height:1.6;padding:10px 14px;text-align:center}
 .rc-next{display:block;width:100%;margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);padding:11px;font-size:13px;font-family:var(--sans);cursor:pointer;letter-spacing:.04em;transition:background .2s}
 .rc-next:hover{background:var(--accent-mid)}
@@ -412,109 +432,22 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 <div class="guide-ov" id="guide-ov">
   <div class="guide-inner">
     <div class="guide-logo">住まいの対話</div>
-    <div class="guide-logo-sub">SUMAI DIALOGUE</div>
-    <p class="guide-lead">家づくりを考え始めたとき、最初に必要なのは<br>「自分がどんな暮らしをしたいか」を整理する時間です。<br><br>専門家に会う前に、AIとの対話を通じて<br>あなた自身の言葉で気持ちを整理していきましょう。</p>
-    <div class="guide-items">
-      <div class="guide-item">
-        <div class="guide-icon">🎤</div>
-        <div class="guide-txt">
-          <strong>静かな場所で、音声入力がおすすめです</strong>
-          キーボードのマイクボタン（音声入力）を使うと、話しながら自然に考えを整理できます。
-        </div>
-      </div>
-<div class="guide-item">
-        <div class="guide-icon">🔄</div>
-        <div class="guide-txt">
-          <strong>いつでも中断・再開できます</strong>
-          途中で止めても、続きから始めることができます。急がず、自分のペースで。
-        </div>
-      </div>
-      <div class="guide-item">
-        <div class="guide-icon">💬</div>
-        <div class="guide-txt">
-          <strong>基本は自由に話すスタイルです</strong>
-          答え方がわからないときは選択肢が表示されることがあります。選ぶか、参考にして自分の言葉で話すか、どちらでも構いません。
-        </div>
-      </div>
-      <div class="guide-item guide-family">
-        <div class="guide-icon">👪</div>
-        <div class="guide-txt">
-          <strong>ご家族と住む方へ</strong>
-          住まいの要望を家族で相談する前に、まずは一人ひとり別々にこのヒアリングを受けてみてください。家族といえど、それぞれがユニークな個人です。お互いに知らなかったことや、まだ言葉にしていない本心が見つかることもあります。そのあと話し合うと、良い機会になるかもしれません。
-        </div>
-      </div>
-    </div>
-    <button class="guide-start" onclick="showNotice()">次へ — ご利用にあたっての注意</button>
-    <div class="guide-import">
-      保存した記録ファイルをお持ちの方は
-      <label class="guide-import-link">こちらから再開<input type="file" accept=".json,application/json" id="import-file" onchange="importSessionFile(this.files[0])" style="display:none"></label>
+    <div class="guide-logo-sub tight">SUMAI DIALOGUE</div>
+    <p class="guide-tagline">AIとの対話を通して、これからの暮らしを考えるサービスです。</p>
+    <p class="guide-lead">家づくりを考え始めるそのときに。<br>間取りを考える前に、設備を選ぶ前に。<br>あなた自身の暮らしについて、少し話してみませんか。</p>
+    <p class="guide-lead">話すように、答えてください。<br>考えがまとまっていなくても、大丈夫です。<br>音声入力を使うと、話しやすくなります。</p>
+    <p class="guide-fine">対話の内容は、私たちのサーバーには保存しません。<br>応答をつくるためだけに、AIの提供元へ送信されます。</p>
+    <p class="guide-fine">第1章は無料です。<br>続けたいと思ったときだけ、料金のご案内をします。</p>
+    <button class="guide-start" onclick="startSession()">対話をはじめる</button>
+    <label class="guide-sub-btn">保存した記録から再開する<input type="file" accept=".json,application/json" id="import-file" onchange="importSessionFile(this.files[0])" style="display:none"></label>
+    <div class="guide-import" style="margin-top:18px">
+      <a href="about.html" class="guide-import-link">始める前に、仕組みや料金について詳しく知りたい方へ →</a>
     </div>
     <div class="guide-import" style="margin-top:8px">
-      <a href="about.html" style="color:inherit">このサービスについて — 作った理由を読む</a>
+      <a href="legal.html" target="_blank" class="guide-import-link">利用規約・プライバシーポリシー・返金ポリシー・特定商取引法に基づく表記</a>
     </div>
-  </div>
-</div>
-
-<!-- ── ご利用にあたっての注意ページ ── -->
-<div class="guide-ov" id="notice-ov">
-  <div class="guide-inner">
-    <div class="guide-logo">ご利用にあたっての注意</div>
-    <div class="guide-logo-sub">大切なことなので、始める前にお読みください</div>
-    <div class="guide-items">
-      <div class="guide-item guide-warn">
-        <div class="guide-icon">⚠️</div>
-        <div class="guide-txt">
-          <strong>数日〜1週間ほど開かないと、記録が消えることがあります</strong>
-          このサービスは、あなたの暮らしの情報を守るため、対話の記録を<u>あなたの端末の中だけ</u>に保存し、私たちのサーバーには一切送りません。その代わり、iPhone（Safari）などでは<u>1週間ほどこのページを開かないでいると、端末が記録を自動的に消してしまう</u>ことがあります。消えると、私たちの側からは元に戻せません。<br>
-          <br>
-          そこで、次の2つで大切な記録を守ってください。
-        </div>
-      </div>
-      <div class="guide-item">
-        <div class="guide-icon">💾</div>
-        <div class="guide-txt">
-          <strong>① 区切りごとに「記録を保存」でファイルを残す（いちばん確実）</strong>
-          画面上部の「記録を保存」ボタンで、対話の控えをファイルとして手元に残せます。万一記録が消えても、開始画面の「保存したファイルから再開」で、そのファイルから続きに戻れます。<u>一日の終わりや中断する前には、必ず保存する習慣をおすすめします。</u>
-        </div>
-      </div>
-      <div class="guide-item">
-        <div class="guide-icon">📱</div>
-        <div class="guide-txt">
-          <strong>② iPhoneの方は「ホーム画面に追加」（消えにくくなります）</strong>
-          Safariの共有ボタン（□に↑のマーク）から「ホーム画面に追加」を選ぶと、アプリのようにアイコンから使えるようになり、自動で消える制限がなくなります。<br>
-          ※追加した後は、必ずホーム画面のアイコンから開いて始めてください（Safariで進めた記録はアイコン側には引き継がれません）。
-        </div>
-      </div>
-      <div class="guide-item">
-        <div class="guide-icon">🔒</div>
-        <div class="guide-txt">
-          <strong>端末とブラウザは、最後まで同じものを使ってください</strong>
-          記録はこの端末のこのブラウザの中にだけあるため、<u>別の端末や別のブラウザでは続きができません</u>。最初に使いやすい環境を決めてから始めてください。
-        </div>
-      </div>
-      <div class="guide-item">
-        <div class="guide-icon">🚫</div>
-        <div class="guide-txt">
-          <strong>LINEやInstagramの中では開かないでください</strong>
-          アプリ内ブラウザでは記録が特に消えやすくなります。必ずSafariやChromeなどのブラウザ本体で開いてください。
-        </div>
-      </div>
-    </div>
-    <button class="guide-start" onclick="showPricing()">理解しました — 次へ（料金について）</button>
-  </div>
-</div>
-
-<!-- ── 料金説明ページ ── -->
-<div class="guide-ov" id="pricing-ov">
-  <div class="guide-inner">
-    <div class="guide-logo">料金について</div>
-    <div class="guide-logo-sub">仕組みを理解した上で始めていただきたいことです</div>
-    <p class="guide-lead" style="font-size:13px">「住まいの対話」は、対話のたびにAI（人工知能）の利用実費が発生するサービスです。そのため、はじめの体験は無料とし、そこから先へ進むときに段階的にお支払いいただく仕組みにしています。</p>
-    <div id="pricing-rows"></div>
-    <p class="pricing-note" id="pricing-note"></p>
-    <button class="guide-start" onclick="startSession()">料金の仕組みに同意して、はじめる</button>
-    <div class="guide-import">
-      <a href="legal.html" target="_blank" class="guide-import-link" style="text-decoration:underline">利用規約・プライバシーポリシー・返金ポリシー・特定商取引法に基づく表記</a>
+    <div class="guide-import" id="top-restore" style="display:none">
+      <span class="restore-link" onclick="redeemRestoreCode()">購入復元コードをお持ちの方はこちら</span>
     </div>
   </div>
 </div>
@@ -703,7 +636,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260727235849"></script>
+<script src="brief_render.js?v=20260810134836"></script>
 
 <script>
 // ── API接続設定 ──
@@ -790,11 +723,7 @@ function saveApiKey() {
 function showGuidance() {
   const ov = document.getElementById('guide-ov');
   ov.classList.add('show');
-}
-
-function showNotice() {
-  document.getElementById('guide-ov').classList.remove('show');
-  document.getElementById('notice-ov').classList.add('show');
+  sendEvent('view-top');
 }
 
 // ── 課金構造（ここを書き換えるだけで料金ページの表示が変わる）──
@@ -802,10 +731,10 @@ function showNotice() {
 const PRICING = {
   live: false,  // 決済導入前は false（説明ページに「まだ請求は発生しない」注記が出る）
   stages: [
-    { steps: '第1章', label: 'はじめに・目的の整理', desc: '家族構成と、住まいづくりの目的をAIとの対話で整理します。ここまでのまとめもお渡しします。', price: 0,    after: null },
-    { steps: '第2〜3章', label: '暮らしと質感の対話',   desc: '一日の暮らしのトレースと、空間の質感・好みの整理。対話の中心となる部分です。',       price: 600,  after: 'STEP0-1',
+    { steps: '第1章', label: '住まいづくりを始める理由を見つける', desc: 'あなたのことと、住まいを考え始めた理由を、対話しながら言葉にしていきます。ここまでのまとめもお渡しします。', price: 0,    after: null },
+    { steps: '第2〜3章', label: '暮らしと質感の対話',   desc: '朝起きてから眠るまで、あなたの一日を一緒に振り返ります。そのあと、好きな空間の質感や雰囲気を言葉にしていきます。', price: 600,  after: 'STEP0-1',
       unlocks: ['一日の暮らしを朝から夜までたどるAIとの対話', '好きな空間の質感・雰囲気を言葉にする対話', 'この区間の対話を、いつでも中断・再開できます'] },
-    { steps: '第4章',    label: '優先順位の整理と要望書', desc: 'プランニング判断の整理と、設計者や工務店に渡せる「住まい作り要望書」の作成。',            price: 1200, after: 'STEP3',
+    { steps: '第4章',    label: '考えを一冊にまとめる', desc: '何を大切にし、何を手放すかを整理して、あなたの一冊にまとめます。', price: 1200, after: 'STEP3',
       unlocks: ['何を大切にし何を手放すかを整理するAIとの対話', '「暮らしと住まいの要望書」の作成（何度でも作り直せます）', '要望書の印刷・PDF保存・匿名シェア'] },
   ],
 };
@@ -838,36 +767,11 @@ async function loadPricing() {
     PRICING.stages.forEach(s => {
       if (s.after && j.applicable.prices[s.after] != null) s.price = j.applicable.prices[s.after];
     });
+    if (PRICING.live) {
+      const r = document.getElementById('top-restore');
+      if (r) r.style.display = 'block';
+    }
   } catch(e) {}
-}
-
-function buildPricingPage() {
-  const rows = document.getElementById('pricing-rows');
-  rows.innerHTML = PRICING.stages.map(s => `
-    <div class="price-row">
-      <div class="price-row-hd">
-        <span class="price-step">${s.steps}</span>
-        <span class="price-amt">${s.price === 0 ? '無料' : '¥' + s.price.toLocaleString()}</span>
-      </div>
-      <div class="price-row-ttl">${s.label}</div>
-      <div class="price-row-desc">${s.desc}</div>
-      ${s.unlocks ? `<ul class="price-row-unlocks">${s.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>` : ''}
-    </div>`).join('');
-  const total = PRICING.stages.reduce((a, s) => a + s.price, 0);
-  let note = `すべて進んだ場合の合計は ¥${total.toLocaleString()} です。お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。`;
-  if (PRICE_INFO && PRICE_INFO.applicable && PRICE_INFO.applicable.id !== 'regular') {
-    const until = PRICE_INFO.applicable.until;
-    note += `<br>現在は<strong>${PRICE_INFO.applicable.label}</strong>が適用されています${until ? `（${until.replace(/-/g, '/')}まで）` : ''}。この期間に始めた方は、期間が終わってもこの価格のまま最後まで進めます。`;
-  }
-  if (!PRICING.live) note += '<br>※現在はテスト公開中のため、実際のお支払いはまだ発生しません。';
-  if (PRICING.live) note += `<br><span class="restore-link" onclick="redeemRestoreCode()">購入復元コードをお持ちの方はこちら</span>`;
-  document.getElementById('pricing-note').innerHTML = note;
-}
-
-function showPricing() {
-  buildPricingPage();
-  document.getElementById('notice-ov').classList.remove('show');
-  document.getElementById('pricing-ov').classList.add('show');
 }
 
 // ── 支払い状態（Stripe導入後もこのキーを使う）──
@@ -988,10 +892,20 @@ function sendEvent(name) {
   } catch(e) {}
 }
 
+const CONSENT_KEY = 'mirai-no-ie-consent';
+function recordConsent(patch) {
+  try {
+    let c = {};
+    try { c = JSON.parse(localStorage.getItem(CONSENT_KEY)) || {}; } catch(e) {}
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(Object.assign(c, patch)));
+  } catch(e) {}
+}
+
 function startSession() {
-  try { localStorage.setItem('mirai-no-ie-consent', JSON.stringify({ agreedAt: new Date().toISOString(), pricing: PRICING.stages.map(s => s.price) })); } catch(e) {}
+  // 送信とデータの扱いについての開示は、このボタンの上に表示されている
+  recordConsent({ disclosureAt: new Date().toISOString(), pricing: PRICING.stages.map(s => s.price) });
   ensureReceipt();  // 開始日の署名（期間跨ぎの料金据え置き用）
-  const ov = document.getElementById('pricing-ov');
+  const ov = document.getElementById('guide-ov');
   ov.classList.add('hidden');
   setTimeout(() => { ov.classList.remove('show'); }, 500);
   requestPersist();
@@ -1130,6 +1044,93 @@ function addChoiceBlock(choices) {
   appendToChat(block);
 }
 
+function addPromiseCard() {
+  const card = document.createElement('div');
+  card.className = 'pc';
+  card.innerHTML = `
+    <div class="pc-hd">大切なお約束</div>
+    <div class="pc-lead">このサービスは、あなたとの対話を私たちのサーバーに保存しません。<br>
+      暮らしや家族のことを安心して話していただくために、記録はあなたの端末の中だけに残ります。<br>
+      その代わり、4つだけお願いがあります。</div>
+    <div class="pc-item"><strong>1. 一日の終わりに「記録を保存」を押してください</strong>
+      <div>画面上部のボタンから、対話の控えをファイルとして残せます。<br>
+        このファイルがあれば、記録が消えてしまっても、別の端末やブラウザから続きを再開できます。</div></div>
+    <div class="pc-item"><strong>2.「ホーム画面に追加」しておくと、戻ってきやすくなります</strong>
+      <div>ホーム画面に追加すると、次回からアプリのようにすぐ続きから始められます。<br>
+        iPhone（Safari）をご利用の方は、記録が消えにくくなるメリットもあります。
+        <span class="pc-note">※ここまでの対話は、アイコン側には自動では移りません。先に「記録を保存」で残してから、アイコンで開いて読み込んでください。</span></div></div>
+    <div class="pc-item"><strong>3. 続きは、同じ端末・同じブラウザで</strong>
+      <div>記録は、この端末のこのブラウザの中にだけ残ります。<br>
+        別の端末やブラウザで開いても、自動では続きになりません。</div></div>
+    <div class="pc-item"><strong>4. LINEやInstagramの中では開かないでください</strong>
+      <div>アプリの中のブラウザは、記録が特に消えやすくなります。<br>
+        SafariやChromeなどのブラウザから開いてください。</div></div>
+    <div class="pc-sub">進め方に迷ったときは、画面上部の「使い方」からいつでも確認できます。</div>
+    <label class="pc-check"><input type="checkbox" onchange="promiseCheck(this)"><span>確認しました</span></label>
+    <button class="pc-next" onclick="promiseNext(this)">対話を続ける</button>
+    <div class="pc-foot">家づくりは、一日で答えが出るものではありません。<br>
+      急がなくて大丈夫です。話しながら、少しずつ見つけていきましょう。</div>
+  `;
+  appendToChat(card);
+}
+
+function promiseCheck(box) {
+  const btn = box.closest('.pc').querySelector('.pc-next');
+  btn.classList.toggle('on', box.checked);
+}
+
+function promiseNext(btn) {
+  btn.disabled = true;
+  btn.classList.remove('on');
+  recordConsent({ careAgreedAt: new Date().toISOString() });
+  sendEvent('agree-care');
+  addPricingCard();
+}
+
+// ── この先の料金（お約束のすぐ後に一度だけ出す）──
+function addPricingCard() {
+  const rows = PRICING.stages.map(st => `
+    <div class="price-row">
+      <div class="price-row-hd">
+        <span class="price-step">${st.steps}</span>
+        <span class="price-amt">${st.price === 0 ? '無料' : '¥' + st.price.toLocaleString()}</span>
+      </div>
+      <div class="price-row-ttl">${st.label}</div>
+      <div class="price-row-desc">${st.desc}</div>
+      ${st.unlocks ? `<ul class="price-row-unlocks">${st.unlocks.map(u => `<li>${u}</li>`).join('')}</ul>` : ''}
+    </div>`).join('');
+  const total = PRICING.stages.reduce((a, st) => a + st.price, 0);
+  let note = `すべて進んだ場合の合計は ¥${total.toLocaleString()} です。お支払いは各区間の入口で、その都度ご案内します。途中でやめた場合、それ以降の請求はありません。`;
+  if (PRICE_INFO && PRICE_INFO.applicable && PRICE_INFO.applicable.id !== 'regular') {
+    const until = PRICE_INFO.applicable.until;
+    note += `<br>現在は<strong>${PRICE_INFO.applicable.label}</strong>が適用されています${until ? `（${until.replace(/-/g, '/')}まで）` : ''}。この期間に始めた方は、期間が終わってもこの価格のまま最後まで進めます。`;
+  }
+  if (!PRICING.live) note += '<br>※現在はテスト公開中のため、実際のお支払いはまだ発生しません。';
+  if (PRICING.live) note += `<br><span class="restore-link" onclick="redeemRestoreCode()">購入復元コードをお持ちの方はこちら</span>`;
+
+  const card = document.createElement('div');
+  card.className = 'pc';
+  card.innerHTML = `
+    <div class="pc-hd">この先の料金</div>
+    <div class="pc-lead">ここまでの対話は無料です。第1章の終わりまで、無料で進められます。<br>
+      その先へ進むときだけ、段階的にお支払いいただく仕組みにしています。</div>
+    ${rows}
+    <div class="pc-sub">${note}</div>
+    <button class="pc-next on" onclick="pricingNext(this)">確認しました — 対話を続ける</button>
+    <div class="pc-sub">対話のたびにAI（人工知能）の利用料がかかるため、この仕組みにしています。<a href="legal.html" target="_blank" class="guide-import-link">利用規約・特定商取引法に基づく表記</a></div>
+  `;
+  appendToChat(card);
+}
+
+function pricingNext(btn) {
+  btn.disabled = true;
+  btn.classList.remove('on');
+  recordConsent({ priceAgreedAt: new Date().toISOString(), pricing: PRICING.stages.map(st => st.price) });
+  sendEvent('agree-price');
+  inpEl.value = '確認しました。';
+  sendMsg();
+}
+
 function addReflectionCard() {
   const card = document.createElement('div');
   card.className = 'rc';
@@ -1207,6 +1208,7 @@ function cleanText(text) {
   return text
     .replace(/【選択肢[:：][^】]*】/g, '')
     .replace(/【内省カード】/g, '')
+    .replace(/【お約束カード】/g, '')
     .replace(/【要望書生成】/g, '')
     .replace(/【ステージ[:：][^】]*】/g, '')
     .replace(/【セクション保存[:：][^】]*】/g, '')
@@ -1539,6 +1541,7 @@ async function sendMsg() {
     return;
   }
   const userTurns = history.filter(m => m.role === 'user').length;
+  if (userTurns === 0) sendEvent('first-send');
   if (userTurns >= BRAKES.maxUserTurns) {
     if (confirm('対話が想定の上限に達しました。\nこれまでの内容で「住まい作り要望書」を作成しますか？\n\n（キャンセルした場合、このメッセージは送信されません。「記録を保存」で控えを残すことをおすすめします）')) {
       generateReport();
@@ -1569,6 +1572,12 @@ async function sendMsg() {
     if (aiText.includes('【要望書生成】')) {
       addMsg('ai', clean);
       await generateReport();
+    } else if (aiText.includes('【お約束カード】')) {
+      addMsg('ai', clean);
+      addPromiseCard();
+      saveSession();
+      document.getElementById('rewind-btn').classList.add('visible');
+      document.getElementById('export-btn').classList.add('visible');
     } else if (aiText.includes('【内省カード】')) {
       addMsg('ai', clean);
       addReflectionCard();
@@ -2434,19 +2443,11 @@ function start() {
 
   setTimeout(() => {
     hideTyping();
-    addMsg('ai', '良い家づくりは、良い相談相手を見つけることから始まるわけではありません。\n\nその前に大切なことがあります。自分自身の暮らしと、向き合う時間です。\n\n家のプロはたくさんいます。でも、あなたの暮らしのプロは、あなたしかいません。どんな時間を大切にしたいか、どんな自分でいたいか——それはあなた自身にしか分かりません。\n\nこの対話を通じて、その問いを一緒に整理していきましょう。');
-
-    setTimeout(() => {
-      showTyping();
-      setTimeout(() => {
-        hideTyping();
-        const q = 'まず、今の暮らしについて教えてください。\n\n今、何人で暮らしていますか？ご家族の年齢や、それぞれの働き方（在宅・通勤など）も、わかる範囲で教えていただけると助かります。';
-        addMsg('ai', q);
-        setStage('家族構成を把握する');
-        history.push({ role: 'assistant', content: q });
-        maybeAttnHelpBtn();
-      }, 800);
-    }, 1200);
+    const q = 'こんにちは。\n私は、住まいの対話を一緒に進めるAIです。\n\nあなたのことは、なんとお呼びすればいいですか。';
+    addMsg('ai', q);
+    setStage('はじまり');
+    history.push({ role: 'assistant', content: q });
+    maybeAttnHelpBtn();
   }, 900);
 }
 
