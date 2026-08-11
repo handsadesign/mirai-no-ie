@@ -640,7 +640,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260810144613"></script>
+<script src="brief_render.js?v=20260811163617"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1510,6 +1510,18 @@ function withCache(messages) {
   );
 }
 
+// 生成の紛れで、AIが利用者の発言まで自分で書いてしまうことがある（2026-08-11 実利用で2回）。
+// 境目には決まって特定の語が現れる（話者交代の内部トークンが表示上その語に化けていると見られる）。
+// ①その語で生成を止める ②万一通り抜けたら、その語以降を切り落とす、の二段構えで塞ぐ。
+const TURN_ARTIFACTS = ['Roosevelt'];
+function cutTurnArtifact(t) {
+  for (const a of TURN_ARTIFACTS) {
+    const i = t.indexOf(a);
+    if (i >= 0) t = t.slice(0, i).trim();
+  }
+  return t;
+}
+
 async function callClaude(userMsg) {
   history.push({ role: 'user', content: userMsg });
   const res = await fetch(apiEndpoint(), {
@@ -1522,6 +1534,7 @@ async function callClaude(userMsg) {
       // 消費して返答が途中で切れる（最悪、本文ゼロ）。対話は短いラリーなので
       // 思考を明示的にオフにする（2026-07-23の途切れ不具合の修正）。
       thinking: { type: 'disabled' },
+      stop_sequences: TURN_ARTIFACTS,
       messages: withCache(history)
     })
   });
@@ -1533,7 +1546,8 @@ async function callClaude(userMsg) {
   // content配列の先頭が常に text ブロックとは限らない（拡張思考が有効だと
   // 先頭に thinking ブロックが入る）。type:'text' のブロックを探して使う。
   const textBlock = (data.content || []).find(b => b.type === 'text');
-  const txt = textBlock?.text || 'うまく受け取れませんでした。もう一度お試しください。';
+  let txt = cutTurnArtifact(textBlock?.text || '');
+  if (!txt) txt = 'うまく受け取れませんでした。もう一度お試しください。';
   history.push({ role: 'assistant', content: txt });
   return txt;
 }
