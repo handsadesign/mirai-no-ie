@@ -371,6 +371,25 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .paygate-note{font-size:10px;color:var(--ink-light);margin-top:10px}
 .paygate-testnote{font-size:13px;font-weight:500;color:var(--accent-mid);background:var(--accent-dim);border:1px solid var(--accent-light);border-radius:var(--r-sm);padding:9px 14px;margin-top:14px;line-height:1.6}
 .restore-link{text-decoration:underline;text-underline-offset:2px;cursor:pointer;color:var(--ink-mid)}
+/* 第1章の記録（一枚のシート・SP-403）: 本の一頁として組む。色はシート内で完結させる */
+.ch1-wrap{margin:16px 0 20px}
+.ch1-sheet{background:#fffdf9;border:1px solid #e6dfd0;padding:34px 26px 24px;box-shadow:0 2px 14px rgba(0,0,0,.06);
+  --c1-ink:#211e18;--c1-ink2:#5a5346;--c1-faint:#a89d89;--c1-hair:#ddd5c4;--c1-clay:#8a6a4c;color:var(--c1-ink)}
+.ch1-kick{font-size:10px;letter-spacing:.3em;color:var(--c1-clay);font-weight:500;margin-bottom:6px}
+.ch1-folio{font-family:var(--serif);font-size:11px;color:var(--c1-faint);letter-spacing:.1em;float:right}
+.ch1-ttl{font-family:var(--serif);font-weight:400;font-size:19px;margin:0 0 24px;letter-spacing:.02em}
+.ch1-lead-lbl{font-size:10px;letter-spacing:.24em;color:var(--c1-clay);font-weight:500;margin-bottom:10px}
+.ch1-lead{font-family:var(--serif);font-weight:300;font-size:17px;line-height:2.0;margin:0 0 8px}
+.ch1-ctx{font-size:11px;color:var(--c1-faint);margin-bottom:22px}
+.ch1-rule{height:1px;background:var(--c1-hair);margin:18px 0}
+.ch1-sec{font-size:10px;letter-spacing:.24em;color:var(--c1-clay);font-weight:500;margin:0 0 9px}
+.ch1-fl{display:flex;gap:8px;padding:3px 0;font-size:13px;line-height:1.75}
+.ch1-fl::before{content:'—';color:var(--c1-hair);flex-shrink:0}
+.ch1-para{font-size:13px;line-height:1.9;color:var(--c1-ink2);margin:0}
+.ch1-q{font-family:var(--serif);font-weight:300;font-size:14px;line-height:2.05;margin:0 0 6px}
+.ch1-foot{margin-top:26px;padding-top:11px;border-top:1px solid var(--c1-hair);display:flex;justify-content:space-between;font-size:10px;color:var(--c1-faint);letter-spacing:.16em}
+.ch1-loading{border:1px solid var(--ink-faint);background:var(--paper-card);border-radius:var(--r);padding:16px 18px;font-size:13px;color:var(--ink-mid);line-height:1.6;animation:ch1pulse 1.6s ease-in-out infinite}
+@keyframes ch1pulse{0%,100%{opacity:1}50%{opacity:.55}}
 /* テスト決済画面 */
 .mock-pay-ov{position:fixed;inset:0;background:rgba(26,26,24,.45);z-index:400;display:none;align-items:center;justify-content:center;padding:24px}
 .mock-pay-ov.open{display:flex}
@@ -640,7 +659,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260812104807"></script>
+<script src="brief_render.js?v=20260812113404"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1159,13 +1178,89 @@ function reflectionNext(btn) {
 }
 
 // ── STEP 0-1 完了時の成果物（ここまでのまとめ）──
+// ── 第1章の記録（一枚のシート・SP-403）──
+// 確認（要点の読み上げ）は対話の中で済んでいる。ここは「あなたの言葉がこういう形で
+// 残っていく」を見せる一枚。編集はWorkerのCHAPTER1_PROMPT（mode:'chapter1'）が行う。
+const CH1_KEY = 'mirai-no-ie-ch1-v1';
+
+function loadCh1() {
+  try { return JSON.parse(localStorage.getItem(CH1_KEY)); } catch(e) { return null; }
+}
+
+function ch1Esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderCh1Sheet(d) {
+  const secs = (d.sections || []).map(s => {
+    const items = (s.items || []).map(ch1Esc);
+    const body = s.style === 'flow' ? items.map(i => `<div class="ch1-fl">${i}</div>`).join('')
+      : s.style === 'quote' ? items.map(i => `<p class="ch1-q">「${i}」</p>`).join('')
+      : `<p class="ch1-para">${items.join(' ')}</p>`;
+    return `<div class="ch1-rule"></div><div class="ch1-sec">${ch1Esc(s.title || '')}</div>${body}`;
+  }).join('');
+  const closing = d.closing_quote?.text
+    ? `<div class="ch1-rule"></div><div class="ch1-sec">${ch1Esc(d.closing_quote.label || '語られた言葉')}</div><p class="ch1-q">「${ch1Esc(d.closing_quote.text)}」</p>`
+    : '';
+  return `<div class="ch1-sheet"><span class="ch1-folio">01</span><div class="ch1-kick">CHAPTER 1</div>
+    <div class="ch1-ttl">第1章の記録　目的とみらい</div>
+    <div class="ch1-lead-lbl">${ch1Esc(d.lead?.label || '')}</div>
+    <p class="ch1-lead">「${ch1Esc(d.lead?.text || '')}」</p>
+    <p class="ch1-ctx">話し手：${ch1Esc(d.speaker || '')}${d.context ? '　—　' + ch1Esc(d.context) : ''}</p>
+    ${secs}${closing}
+    <div class="ch1-foot"><span>住まいの対話</span><span>SUMAI DIALOGUE</span></div></div>`;
+}
+
+// キャッシュ済みのシートをそのまま出す（再開時の復元用）
+function addCh1SheetCard(data) {
+  const wrap = document.createElement('div');
+  wrap.className = 'ch1-wrap';
+  wrap.innerHTML = renderCh1Sheet(data);
+  appendToChat(wrap);
+}
+
+// 第1章の会話を「AI:／話者:」の記録テキストにする（編集素材の入力）
+function ch1Transcript() {
+  return conversationOnly()
+    .map(m => (m.role === 'user' ? '話者: ' : 'AI: ') + cleanText(m.content).trim())
+    .filter(l => l.replace(/^(AI|話者): /, '').length > 0)
+    .join('\n');
+}
+
+async function fetchCh1Data() {
+  const msgs = [{ role: 'user', content: '# 第1章の対話記録\n' + ch1Transcript() + '\n\n上記から「第1章の記録」の編集素材JSONを作ってください。' }];
+  const res = await fetch(apiEndpoint(), {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 2000, mode: 'chapter1', messages: msgs })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  const t = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  const m = t.match(/\{[\s\S]*\}/);
+  const d = JSON.parse(m[0]);
+  if (!d.lead?.text || !Array.isArray(d.sections) || !d.sections.length) throw new Error('形式不正');
+  return d;
+}
+
+// STEP0-1保存時の入口。枠だけ先に置いてpaygateとの並び順を保ち、中身は非同期で編む。
+// 失敗したら旧「まとめを保存」カードに退避する（行き止まりにしない）
 function addMilestoneCard() {
-  const card = document.createElement('div');
-  card.className = 'vb';
-  card.innerHTML = `<div style="font-size:20px">📄</div>
-    <div class="vb-txt"><strong>無料でのヒアリングはここまでです</strong>ここまでのまとめを、手元に残せます。</div>
-    <button class="vb-btn" onclick="generateMilestone(this)">まとめを保存する</button>`;
-  appendToChat(card);
+  const cached = loadCh1();
+  if (cached?.data) { addCh1SheetCard(cached.data); return; }
+  const wrap = document.createElement('div');
+  wrap.className = 'ch1-wrap';
+  wrap.innerHTML = `<div class="ch1-loading">ここまでのあなたの言葉を、一枚の記録に編んでいます…</div>`;
+  appendToChat(wrap);
+  keepAwake();
+  fetchCh1Data().then(d => {
+    try { localStorage.setItem(CH1_KEY, JSON.stringify({ at: new Date().toISOString(), data: d })); } catch(e) {}
+    wrap.innerHTML = renderCh1Sheet(d);
+  }).catch(e => {
+    wrap.innerHTML = `<div class="vb"><div style="font-size:20px">📄</div>
+      <div class="vb-txt"><strong>無料でのヒアリングはここまでです</strong>ここまでのまとめを、手元に残せます。</div>
+      <button class="vb-btn" onclick="generateMilestone(this)">まとめを保存する</button></div>`;
+  }).finally(() => releaseAwake());
 }
 
 async function generateMilestone(btn) {
@@ -1321,6 +1416,7 @@ function loadSession() {
 
 function clearSession() {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(CH1_KEY); // 第1章の記録は対話に紐づくので一緒に消す
 }
 
 // ── 記録ファイルの保存・読み込み（端末内バックアップ）──
@@ -1362,6 +1458,7 @@ async function exportSession() {
     session: JSON.parse(raw),
     report,
     qa: localStorage.getItem(QA_KEY) || null,
+    ch1: localStorage.getItem(CH1_KEY) || null,
     // 支払い状態（復元コード含む）と開始日の署名も控えに含める（機種変・データ消失対策）
     pay: localStorage.getItem(PAY_KEY) || null,
     receipt: localStorage.getItem(RECEIPT_KEY) || null,
@@ -1381,6 +1478,7 @@ function importSessionFile(file) {
       localStorage.setItem(SESSION_KEY, JSON.stringify(b.session));
       if (b.report) localStorage.setItem(REPORT_KEY, JSON.stringify(b.report));
       if (b.qa) localStorage.setItem(QA_KEY, b.qa);
+      if (b.ch1) localStorage.setItem(CH1_KEY, b.ch1);
       if (b.pay) localStorage.setItem(PAY_KEY, b.pay);
       if (b.receipt) localStorage.setItem(RECEIPT_KEY, b.receipt);
       // 仕上げは対話の内容に紐づくので破棄する。
@@ -1490,6 +1588,12 @@ function resumeSession() {
     document.getElementById('rep-hdr-btn')?.classList.add('visible');
   } else if (doneSections.length) {
     const last = doneSections[doneSections.length - 1];
+    // 第1章を終えて支払い前の再開: 「第1章の記録」の一枚をpaygateの前に復元する
+    if (last === 'STEP0-1' && !getPaid()[last]) {
+      const c = loadCh1();
+      if (c?.data) addCh1SheetCard(c.data);
+      else addMilestoneCard(); // キャッシュが無ければ編み直す（別端末で控えから復元した場合など）
+    }
     const gated = maybeAddPaywall(last);
     // 支払い済みなのに次ステップの案内が無いと行き止まりになる
     // （Stripeから戻って再読込した直後がまさにこの状態）
