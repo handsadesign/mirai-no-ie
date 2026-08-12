@@ -640,7 +640,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260811163617"></script>
+<script src="brief_render.js?v=20260812104807"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1513,7 +1513,7 @@ function withCache(messages) {
 // 生成の紛れで、AIが利用者の発言まで自分で書いてしまうことがある（2026-08-11 実利用で2回）。
 // 境目には決まって特定の語が現れる（話者交代の内部トークンが表示上その語に化けていると見られる）。
 // ①その語で生成を止める ②万一通り抜けたら、その語以降を切り落とす、の二段構えで塞ぐ。
-const TURN_ARTIFACTS = ['Roosevelt'];
+const TURN_ARTIFACTS = ['Roosevelt', 'Model failed to generate response'];
 function cutTurnArtifact(t) {
   for (const a of TURN_ARTIFACTS) {
     const i = t.indexOf(a);
