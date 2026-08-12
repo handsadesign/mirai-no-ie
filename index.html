@@ -659,7 +659,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260812113404"></script>
+<script src="brief_render.js?v=20260812132503"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1363,12 +1363,16 @@ const SECTION_LABELS = {
 };
 
 const STEP_NEXT_CONFIGS = {
+  // startedMarker: 次の章が始まると履歴に現れるステージマーカー。
+  // 再開時、これが既に履歴にあれば「次へ」カードを出さない（章の途中で
+  // 「始めましょう」の定型文が送られて、AIに「もう始まっていますよ」と返される事故を防ぐ）
   'STEP0-1': {
     label: '次へ → 第2章 一日の暮らし',
     title: '次は暮らしのタイムテーブルを振り返ります。できるだけ1週間ほど実際の暮らしをメモしてから始めると、より深い対話ができます。',
     primaryLabel: '第2章を始める',
     primaryMsg: '準備ができました。第2章（一日の暮らし）を始めましょう。',
     secondaryLabel: null,
+    startedMarker: '【ステージ: 一日をたどる】',
   },
   'STEP2B': {
     label: '次へ → 第3章 空間の質感と好み',
@@ -1377,6 +1381,7 @@ const STEP_NEXT_CONFIGS = {
     primaryMsg: '続けます。第3章（空間の質感と好み）へ進みましょう。',
     secondaryLabel: '今日はここまでにする',
     secondaryMsg: '今日はここまでにします。',
+    startedMarker: '【ステージ: 空間の質感を探る】',
   },
   'STEP3': {
     label: '次へ → 第4章 プランニングの価値観',
@@ -1385,8 +1390,15 @@ const STEP_NEXT_CONFIGS = {
     primaryMsg: '続けます。第4章（プランニングの価値観）へ進みましょう。',
     secondaryLabel: '今日はここまでにする',
     secondaryMsg: '今日はここまでにします。',
+    startedMarker: '【ステージ: プランニング判断】',
   },
 };
+
+// 次の章がすでに始まっているか（履歴にその章のステージマーカーがあるか）
+function stepAlreadyStarted(cfg) {
+  return !!(cfg.startedMarker && sessionHistory().some(m =>
+    m.role === 'assistant' && typeof m.content === 'string' && m.content.includes(cfg.startedMarker)));
+}
 
 function saveSession(label) {
   try {
@@ -1597,7 +1609,9 @@ function resumeSession() {
     const gated = maybeAddPaywall(last);
     // 支払い済みなのに次ステップの案内が無いと行き止まりになる
     // （Stripeから戻って再読込した直後がまさにこの状態）
-    if (!gated && getPaid()[last] && STEP_NEXT_CONFIGS[last]) addStepNextCard(STEP_NEXT_CONFIGS[last]);
+    if (!gated && getPaid()[last] && STEP_NEXT_CONFIGS[last] && !stepAlreadyStarted(STEP_NEXT_CONFIGS[last])) {
+      addStepNextCard(STEP_NEXT_CONFIGS[last]);
+    }
   }
   scrollBtm(true);
   maybeAttnHelpBtn();
