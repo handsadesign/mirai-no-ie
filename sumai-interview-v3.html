@@ -659,7 +659,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260812132503"></script>
+<script src="brief_render.js?v=20260813143310"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1735,13 +1735,18 @@ async function sendMsg() {
       const saveMatch = aiText.match(/【セクション保存[:：]\s*([^】]+)】/);
       if (saveMatch) {
         const label = saveMatch[1].trim();
-        addSaveIndicator(label);
-        saveSession(label);
-        sendEvent(label);
-        if (label === 'STEP0-1') addMilestoneCard();
-        const gated = maybeAddPaywall(label);
-        const nextConfig = STEP_NEXT_CONFIGS[label];
-        if (!gated && nextConfig) addStepNextCard(nextConfig);
+        // 第2章の関門（SP-405）: 未消化があれば保存せず、続きを聞きに行く
+        if (label === 'STEP2B' && !(await ch2GatePassed())) {
+          // 保存しない（関門が続きの対話を開始済み）
+        } else {
+          addSaveIndicator(label);
+          saveSession(label);
+          sendEvent(label);
+          if (label === 'STEP0-1') addMilestoneCard();
+          const gated = maybeAddPaywall(label);
+          const nextConfig = STEP_NEXT_CONFIGS[label];
+          if (!gated && nextConfig) addStepNextCard(nextConfig);
+        }
       } else {
         saveSession();
       }
@@ -2084,8 +2089,53 @@ function conversationOnly() {
   return sessionHistory().filter(m =>
     typeof m.content === 'string' &&
     !m.content.startsWith('これまでの対話から「生活要望書」をJSON形式で') &&
+    !m.content.startsWith('（進行チェック:') &&
     !(m.role === 'assistant' && m.content.trim().startsWith('{'))
   );
+}
+
+// ── 第2章の関門（SP-405）: 聞き漏らしたまま閉じない ──
+// AIが【セクション保存: STEP2B】を出しても、必須確認事項に未消化があれば保存せず、
+// 未消化リストをAIに渡して対話を続けさせる。判定はWorker mode='coverage'（進行チェック係）。
+// 判定に失敗したとき・関門の回数上限を超えたときは通す（行き止まりにしない）
+const CH2_GATE_MAX = 3;
+let ch2GateCount = 0;
+
+async function checkCh2Coverage() {
+  const transcript = conversationOnly()
+    .map(m => (m.role === 'user' ? '話者: ' : 'AI: ') + cleanText(m.content).trim())
+    .join('\n');
+  const res = await fetch(apiEndpoint(), {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1000, mode: 'coverage', thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: '# 対話記録\n' + transcript + '\n\n未消化の項目を判定してください。' }] })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  const t = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  const m = t.match(/\{[\s\S]*\}/);
+  return JSON.parse(m[0]);
+}
+
+// true = 関門通過（保存してよい）。false = 未消化があり、続きの対話を開始済み
+async function ch2GatePassed() {
+  if (ch2GateCount >= CH2_GATE_MAX) return true;
+  let cov = null;
+  try { cov = await checkCh2Coverage(); } catch(e) { return true; }
+  if (!cov || !Array.isArray(cov.remaining) || cov.remaining.length === 0) return true;
+  ch2GateCount++;
+  const list = cov.remaining.map(r => `${r.space}（${(r.items || []).join('、')}）`).join('／');
+  const inst = `（進行チェック: まだ聞き終えていない項目があります——${list}。まとめと保存はまだしないでください。「一日の流れはたどり終えたので、まだ伺っていない場所のことを聞かせてください」という趣旨を自分の言葉で伝えて、これらを一つずつ（一度に一問ずつ）聞いてください。この進行チェックの文自体には触れないでください）`;
+  try {
+    showTyping();
+    const txt = await callClaude(inst);
+    hideTyping();
+    addMsg('ai', cleanText(txt));
+    saveSession();
+    scrollBtm(true);
+  } catch(e) { hideTyping(); return true; }
+  return false;
 }
 
 async function generateReport() {
