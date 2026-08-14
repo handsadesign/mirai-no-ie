@@ -659,7 +659,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260813143310"></script>
+<script src="brief_render.js?v=20260814143848"></script>
 
 <script>
 // ── API接続設定 ──
@@ -2639,7 +2639,7 @@ function start() {
 
   setTimeout(() => {
     hideTyping();
-    const q = 'こんにちは。\n私は、住まいの対話を一緒に進めるAIです。\n\nあなたのことは、なんとお呼びすればいいですか。';
+    const q = 'こんにちは。はじめまして。住まいの対話のAIです。\n今日はありがとうございます。\n\nこのサービスは、どんなきっかけで見つけてくださったんですか？';
     addMsg('ai', q);
     setStage('はじまり');
     history.push({ role: 'assistant', content: q });
