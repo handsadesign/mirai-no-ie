@@ -390,6 +390,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .ch1-foot{margin-top:26px;padding-top:11px;border-top:1px solid var(--c1-hair);display:flex;justify-content:space-between;font-size:10px;color:var(--c1-faint);letter-spacing:.16em}
 .ch1-loading{border:1px solid var(--ink-faint);background:var(--paper-card);border-radius:var(--r);padding:16px 18px;font-size:13px;color:var(--ink-mid);line-height:1.6;animation:ch1pulse 1.6s ease-in-out infinite}
 @keyframes ch1pulse{0%,100%{opacity:1}50%{opacity:.55}}
+/* 第1章の記録をいつでも開ける全画面ビュー（支払い後・後の章でも本の第一ページとして残す） */
+.ch1-ov{position:fixed;inset:0;background:var(--paper);z-index:140;display:none;flex-direction:column}
+.ch1-ov.open{display:flex}
+.ch1-ov-hd{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--ink-faint);flex-shrink:0}
+.ch1-ov-ttl{font-family:var(--serif);font-size:15px;color:var(--ink-mid);letter-spacing:.04em}
+.ch1-ov-body{flex:1;overflow-y:auto;padding:20px 16px 40px}
+.ch1-ov-body .ch1-wrap{max-width:640px;margin:0 auto}
 /* テスト決済画面 */
 .mock-pay-ov{position:fixed;inset:0;background:rgba(26,26,24,.45);z-index:400;display:none;align-items:center;justify-content:center;padding:24px}
 .mock-pay-ov.open{display:flex}
@@ -476,6 +483,15 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- ── テスト決済画面（本番ではStripeチェックアウトに置き換え）── -->
+<!-- 第1章の記録（一枚）ビュー: 支払い後・後の章でもヘッダーからいつでも開ける -->
+<div class="ch1-ov" id="ch1-ov">
+  <div class="ch1-ov-hd">
+    <div class="ch1-ov-ttl">第1章の記録</div>
+    <button class="rep-hdr-btn visible" onclick="closeCh1Overlay()">閉じる</button>
+  </div>
+  <div class="ch1-ov-body" id="ch1-ov-body"></div>
+</div>
+
 <div class="mock-pay-ov" id="mock-pay-ov">
   <div class="mock-pay-card">
     <div class="mock-pay-hd">お支払い <span class="mock-pay-test">テストプレビュー</span></div>
@@ -498,6 +514,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <div style="display:flex;align-items:center;gap:8px">
       <button class="rewind-btn" id="rewind-btn" onclick="openRewind()">↩ 戻る</button>
       <button class="rep-hdr-btn visible" id="help-btn" onclick="openHelp()">使い方</button>
+      <button class="rep-hdr-btn" id="ch1-hdr-btn" onclick="openCh1Overlay()">第1章</button>
       <button class="rep-hdr-btn" id="export-btn" onclick="exportSession()">記録を保存</button>
       <button class="rep-hdr-btn" id="rep-hdr-btn" onclick="openBrief()">要望書</button>
       <div class="stage" id="stage">はじめに</div>
@@ -659,7 +676,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260814165532"></script>
+<script src="brief_render.js?v=20260814172226"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1219,6 +1236,20 @@ function addCh1SheetCard(data) {
   appendToChat(wrap);
 }
 
+// 一枚はいつでも見返せる（支払い後・後の章に進んだ後も。本の第一ページなので）
+function maybeShowCh1Btn() {
+  if (loadCh1()?.data) document.getElementById('ch1-hdr-btn')?.classList.add('visible');
+}
+function openCh1Overlay() {
+  const c = loadCh1();
+  if (!c?.data) return;
+  document.getElementById('ch1-ov-body').innerHTML = '<div class="ch1-wrap">' + renderCh1Sheet(c.data) + '</div>';
+  document.getElementById('ch1-ov').classList.add('open');
+}
+function closeCh1Overlay() {
+  document.getElementById('ch1-ov').classList.remove('open');
+}
+
 // 第1章の会話を「AI:／話者:」の記録テキストにする（編集素材の入力）
 function ch1Transcript() {
   return conversationOnly()
@@ -1256,6 +1287,7 @@ function addMilestoneCard() {
   fetchCh1Data().then(d => {
     try { localStorage.setItem(CH1_KEY, JSON.stringify({ at: new Date().toISOString(), data: d })); } catch(e) {}
     wrap.innerHTML = renderCh1Sheet(d);
+    maybeShowCh1Btn();
   }).catch(e => {
     wrap.innerHTML = `<div class="vb"><div style="font-size:20px">📄</div>
       <div class="vb-txt"><strong>無料でのヒアリングはここまでです</strong>ここまでのまとめを、手元に残せます。</div>
@@ -1578,6 +1610,7 @@ function resumeSession() {
   requestPersist();
   sendEvent('resume');
   document.getElementById('resume-card')?.remove();
+  maybeShowCh1Btn();
   addVoiceBanner();
   const sep = document.createElement('div');
   sep.className = 'rs-sep';
@@ -1600,11 +1633,11 @@ function resumeSession() {
     document.getElementById('rep-hdr-btn')?.classList.add('visible');
   } else if (doneSections.length) {
     const last = doneSections[doneSections.length - 1];
-    // 第1章を終えて支払い前の再開: 「第1章の記録」の一枚をpaygateの前に復元する
-    if (last === 'STEP0-1' && !getPaid()[last]) {
+    // 第1章を終えた直後の再開（支払いの前後を問わず）: 「第1章の記録」の一枚を復元する
+    if (last === 'STEP0-1') {
       const c = loadCh1();
       if (c?.data) addCh1SheetCard(c.data);
-      else addMilestoneCard(); // キャッシュが無ければ編み直す（別端末で控えから復元した場合など）
+      else if (!getPaid()[last]) addMilestoneCard(); // キャッシュが無ければ編み直す（別端末で控えから復元した場合など）
     }
     const gated = maybeAddPaywall(last);
     // 支払い済みなのに次ステップの案内が無いと行き止まりになる
