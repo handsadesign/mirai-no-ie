@@ -204,8 +204,8 @@ html{scroll-behavior:smooth}
     <h2>開発の現在地</h2>
     <ul class="status">
       <li><span class="st-tag ok">できている</span><span>AIとの対話 ／ 要望書とブックレット ／ 記録の保存・再開 ／ 匿名シェア</span></li>
-      <li><span class="st-tag soon">試験運用中</span><span>いまは試験運用期間です。料金は試験価格で、実際の請求はまだ発生しません。</span></li>
-      <li><span class="st-tag soon">準備中</span><span>お支払いの仕組み ／ 第5章（各空間の詳細ヒアリング）／ 見本の一冊</span></li>
+      <li id="st-trial"><span class="st-tag soon">試験運用中</span><span>いまは試験運用期間です。料金は試験価格で、実際の請求はまだ発生しません。</span></li>
+      <li id="st-soon"><span class="st-tag soon">準備中</span><span>お支払いの仕組み ／ 第5章（各空間の詳細ヒアリング）／ 見本の一冊</span></li>
       <li><span class="st-tag">予定</span><span>変更があれば、このページでお知らせします。</span></li>
     </ul>
   </section>
@@ -213,7 +213,7 @@ html{scroll-behavior:smooth}
   <section id="feedback">
     <p class="kicker">FEEDBACK</p>
     <h2>ご意見・ご感想</h2>
-    <p class="maker">試験運用中のいま、いただいた声がそのままサービスの形になります。匿名で、ひとことでも。<br>
+    <p class="maker"><span id="fb-lead">試験運用中のいま、</span>いただいた声がそのままサービスの形になります。匿名で、ひとことでも。<br>
     <span style="font-size:12px;color:var(--faint)">※お名前や連絡先は書かないでください。返信は行いません（この欄は一方通行です）。</span></p>
     <form id="fb-form" style="margin-top:18px">
       <textarea id="fb-text" rows="4" maxlength="2000" placeholder="例）一日の暮らしの対話が楽しかった／要望書のここが分かりにくかった…"
@@ -288,6 +288,16 @@ document.getElementById('fb-form').addEventListener('submit', async (e) => {
     }
     if (!j.live) note += '<br>※テスト公開中のため、実際のお支払いはまだ発生しません。';
     document.getElementById('price-note').innerHTML = note;
+    // 有料化（live）後は、試験運用の記載を自動で公開中の記載に切り替える。
+    // 当日の手作業を無くすため、liveフラグだけで全ページの表記が揃うようにしている
+    if (j.live) {
+      const t = document.getElementById('st-trial');
+      if (t) t.innerHTML = '<span class="st-tag ok">公開中</span><span>正式に公開しています。第1章は無料、続きは有料です（料金は上の「使い方と料金」をご覧ください）。</span>';
+      const s = document.getElementById('st-soon');
+      if (s) s.innerHTML = '<span class="st-tag soon">準備中</span><span>第5章（各空間の詳細ヒアリング）／ 見本の一冊</span>';
+      const f = document.getElementById('fb-lead');
+      if (f) f.textContent = '';
+    }
   } catch (e) {}
 })();
 </script>
