@@ -676,7 +676,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260817222203"></script>
+<script src="brief_render.js?v=20260817223155"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1798,7 +1798,10 @@ async function sendMsg() {
       document.getElementById('rewind-btn').classList.add('visible');
       document.getElementById('export-btn').classList.add('visible');
       const choices = parseChoices(aiText);
-      if (choices.length) addChoiceBlock(choices);
+      // はじまりの区間（利用者の発言が2つ以下＝経路と「AIははじめてか」）はタップ即送信。
+      // それ以降の選択肢は考えて選ぶ問いなので、選んで確定のまま
+      const earlyStage = history.filter(m => m.role === 'user').length <= 2;
+      if (choices.length) addChoiceBlock(choices, earlyStage);
     }
   } catch(e) {
     hideTyping();
