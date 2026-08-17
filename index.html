@@ -676,7 +676,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260817210942"></script>
+<script src="brief_render.js?v=20260817222203"></script>
 
 <script>
 // ── API接続設定 ──
@@ -2686,8 +2686,8 @@ function start() {
     hideTyping();
     // 最初の一言は選択式にする（打つ敷居を下げる。2026-08-15: 始めた5人中1人しか送らなかった実測から）。
     // 「自分の言葉で話す」は常に最後に置く（答えを限定しない・PR-05）
-    const q = 'こんにちは。はじめまして。住まいの対話のAIです。\n今日はありがとうございます。\n\n今日は、どんな気持ちで開いてくださったんですか？';
-    const choices = ['家づくりやリノベーションを考え始めた', '今の暮らしを少し変えたいと思っている', 'これからの暮らしについて考えてみたい', 'なんとなく気になって', 'AIとの対話を試してみたくて', '自分の言葉で話す'];
+    const q = 'こんにちは。はじめまして。住まいの対話のAIです。\n今日はありがとうございます。\n\nここにたどり着いたきっかけは、なんでしたか？';
+    const choices = ['noteの記事を読んで', 'ブログやSNSで見かけて', '知人に紹介されて', '自分の言葉で話す'];
     addMsg('ai', q);
     setStage('はじまり');
     history.push({ role: 'assistant', content: q + '\n【選択肢: ' + choices.join(' / ') + '】' });
