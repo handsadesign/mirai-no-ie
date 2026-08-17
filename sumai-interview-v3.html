@@ -463,12 +463,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <div class="guide-inner">
     <div class="guide-logo">住まいの対話</div>
     <div class="guide-logo-sub tight">SUMAI DIALOGUE</div>
-    <p class="guide-tagline">AIとの対話を通して、これからの暮らしを考えるサービスです。</p>
-    <p class="guide-lead">家づくりを考え始めるそのときに。<br>間取りを考える前に、設備を選ぶ前に。<br>あなた自身の暮らしについて、少し話してみませんか。</p>
-    <p class="guide-lead">話すように、答えてください。<br>考えがまとまっていなくても、大丈夫です。<br>音声入力を使うと、話しやすくなります。</p>
-    <p class="guide-fine">対話の内容は、私たちのサーバーには保存しません。<br>応答をつくるためだけに、AIの提供元へ送信されます。</p>
-    <p class="guide-fine">第1章は無料です。<br>続けたいと思ったときだけ、料金のご案内をします。</p>
+    <p class="guide-tagline">こんにちは。ここはAIとの対話を通して、これからの暮らしを考える場所です。</p>
+    <p class="guide-lead">少し立ち止まって、自分のペースでゆっくり思いをめぐらせながら、あなたの暮らしについて、素直な言葉を残してみませんか？</p>
+    <p class="guide-lead">対話の記録はあなたの使っている端末の中だけに残り、最後に一冊の本のようにまとまります。</p>
+    <p class="guide-fine">第一章は無料です。ぜひお気軽にはじめてみてください。</p>
     <button class="guide-start" onclick="startSession()">対話をはじめる</button>
+    <p class="guide-fine" style="margin-top:14px">話すように答えてください。考えがまとまっていなくても大丈夫です。音声入力を使うと、話しやすくなります。</p>
     <label class="guide-sub-btn">保存した記録から再開する<input type="file" accept=".json,application/json" id="import-file" onchange="importSessionFile(this.files[0])" style="display:none"></label>
     <div class="guide-import" style="margin-top:18px">
       <a href="about.html" class="guide-import-link">始める前に、仕組みや料金について詳しく知りたい方へ →</a>
@@ -676,7 +676,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260814172226"></script>
+<script src="brief_render.js?v=20260817205410"></script>
 
 <script>
 // ── API接続設定 ──
