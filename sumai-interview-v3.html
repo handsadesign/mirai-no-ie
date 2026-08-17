@@ -676,7 +676,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260817210722"></script>
+<script src="brief_render.js?v=20260817210942"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1034,7 +1034,9 @@ function addMsg(role, text) {
   appendToChat(g, role === 'user');
 }
 
-function addChoiceBlock(choices) {
+// instant=true: タップで即送信（確定ボタンなし）。最初の一言など、敷居を最小にしたい場面用。
+// 既定（instant=false）は選んでから確定——対話中の考えて選ぶ問いはこちらのまま
+function addChoiceBlock(choices, instant = false) {
   const block = document.createElement('div');
   block.className = 'choice-block';
 
@@ -1042,6 +1044,17 @@ function addChoiceBlock(choices) {
   list.className = 'choice-list';
 
   let selectedIndex = -1;
+
+  const commit = (chosen) => {
+    block.remove();
+    if (chosen === '自分の言葉で話す') {
+      inpEl.focus();
+      inpEl.placeholder = '自由に話してみてください...';
+      return;
+    }
+    inpEl.value = chosen;
+    sendMsg();
+  };
 
   choices.forEach((c, i) => {
     const item = document.createElement('div');
@@ -1051,10 +1064,17 @@ function addChoiceBlock(choices) {
       list.querySelectorAll('.choice-item').forEach(el => el.classList.remove('selected'));
       item.classList.add('selected');
       selectedIndex = i;
+      if (instant) { commit(c); return; }
       confirmBtn.classList.add('active');
     };
     list.appendChild(item);
   });
+
+  if (instant) {
+    block.appendChild(list);
+    appendToChat(block);
+    return;
+  }
 
   const footer = document.createElement('div');
   footer.className = 'choice-footer';
@@ -1066,15 +1086,7 @@ function addChoiceBlock(choices) {
   confirmBtn.textContent = '確定する →';
   confirmBtn.onclick = () => {
     if (selectedIndex < 0) return;
-    const chosen = choices[selectedIndex];
-    block.remove();
-    if (chosen === '自分の言葉で話す') {
-      inpEl.focus();
-      inpEl.placeholder = '自由に話してみてください...';
-      return;
-    }
-    inpEl.value = chosen;
-    sendMsg();
+    commit(choices[selectedIndex]);
   };
   footer.appendChild(hint);
   footer.appendChild(confirmBtn);
@@ -2679,7 +2691,7 @@ function start() {
     addMsg('ai', q);
     setStage('はじまり');
     history.push({ role: 'assistant', content: q + '\n【選択肢: ' + choices.join(' / ') + '】' });
-    addChoiceBlock(choices);
+    addChoiceBlock(choices, true);  // タップで即送信
     maybeAttnHelpBtn();
   }, 900);
 }
