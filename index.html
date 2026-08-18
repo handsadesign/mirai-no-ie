@@ -106,6 +106,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .rc-q{font-size:14px;color:var(--ink);line-height:1.9;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06);display:flex;gap:9px}
 .rc-q:last-of-type{border-bottom:none}
 .rc-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:9px}
+.rc-hint{margin-top:12px;font-size:12px;color:var(--ink-light);line-height:1.8;padding-left:22px}
 .rc-foot{margin-top:12px;font-size:13px;color:var(--ink-mid)}
 
 /* save indicator */
@@ -676,7 +677,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260817223155"></script>
+<script src="brief_render.js?v=20260819082834"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1191,6 +1192,7 @@ function addReflectionCard() {
     <div class="rc-lead">少し、先のことを考えてみましょう。<br>今の家や、今の生活のことはいったん横に置いて。</div>
     <div class="rc-q"><div class="rc-dot"></div><div>5年後、10年後のあなたやご家族は、どんなふうに暮らしているでしょうか。</div></div>
     <div class="rc-q"><div class="rc-dot"></div><div>あるいは、どうなっていたいでしょうか。</div></div>
+    <div class="rc-hint">たとえば——一日をどう過ごしているか。仕事は。食事は。体のこと、眠りのこと。大切にしている時間や趣味。<br>思い浮かんだところから、で大丈夫です。</div>
     <div class="rc-foot">正解はありません。</div>
     <button class="rc-next" onclick="reflectionNext(this)">みらいがイメージできたら — 次に進む</button>
     <div class="rc-away">少し時間をかけて考えたい方は、ここで記録を保存して、いったん離れても大丈夫です。
