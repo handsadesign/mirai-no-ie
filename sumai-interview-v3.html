@@ -677,7 +677,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260819082834"></script>
+<script src="brief_render.js?v=20260821143543"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1734,7 +1734,12 @@ async function sendMsg() {
     return;
   }
   const userTurns = history.filter(m => m.role === 'user').length;
-  if (userTurns === 0) sendEvent('first-send');
+  if (userTurns === 0) {
+    sendEvent('first-send');
+    // たどり着いた経路の匿名集計（選択肢名のみ。自由入力は via-own）
+    const routeMap = { 'noteの記事を読んで': 'via-note', 'ブログやSNSで見かけて': 'via-sns', '知人に紹介されて': 'via-referral' };
+    sendEvent(routeMap[text] || 'via-own');
+  }
   if (userTurns >= BRAKES.maxUserTurns) {
     if (confirm('対話が想定の上限に達しました。\nこれまでの内容で「住まい作り要望書」を作成しますか？\n\n（キャンセルした場合、このメッセージは送信されません。「記録を保存」で控えを残すことをおすすめします）')) {
       generateReport();
