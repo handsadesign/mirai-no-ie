@@ -389,6 +389,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .ch1-para{font-size:13px;line-height:1.9;color:var(--c1-ink2);margin:0}
 .ch1-q{font-family:var(--serif);font-weight:300;font-size:14px;line-height:2.05;margin:0 0 6px}
 .ch1-foot{margin-top:26px;padding-top:11px;border-top:1px solid var(--c1-hair);display:flex;justify-content:space-between;font-size:10px;color:var(--c1-faint);letter-spacing:.16em}
+.ch1-share-row{text-align:right;margin-top:8px}
 .ch1-loading{border:1px solid var(--ink-faint);background:var(--paper-card);border-radius:var(--r);padding:16px 18px;font-size:13px;color:var(--ink-mid);line-height:1.6;animation:ch1pulse 1.6s ease-in-out infinite}
 @keyframes ch1pulse{0%,100%{opacity:1}50%{opacity:.55}}
 /* 第1章の記録をいつでも開ける全画面ビュー（支払い後・後の章でも本の第一ページとして残す） */
@@ -488,7 +489,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 <div class="ch1-ov" id="ch1-ov">
   <div class="ch1-ov-hd">
     <div class="ch1-ov-ttl">第1章の記録</div>
-    <button class="rep-hdr-btn visible" onclick="closeCh1Overlay()">閉じる</button>
+    <div style="display:flex;gap:8px">
+      <button class="rep-hdr-btn visible" onclick="openCh1Share()">シェア</button>
+      <button class="rep-hdr-btn visible" onclick="closeCh1Overlay()">閉じる</button>
+    </div>
   </div>
   <div class="ch1-ov-body" id="ch1-ov-body"></div>
 </div>
@@ -677,7 +681,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260821222919"></script>
+<script src="brief_render.js?v=20260829201057"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1243,11 +1247,16 @@ function renderCh1Sheet(d) {
     <div class="ch1-foot"><span>住まいの対話</span><span>SUMAI DIALOGUE</span></div></div>`;
 }
 
+// シートの下に置く「画像でシェア」の行
+function ch1ShareRow() {
+  return `<div class="ch1-share-row"><button class="brief-mini-btn" onclick="openCh1Share()">この一枚を画像でシェア</button></div>`;
+}
+
 // キャッシュ済みのシートをそのまま出す（再開時の復元用）
 function addCh1SheetCard(data) {
   const wrap = document.createElement('div');
   wrap.className = 'ch1-wrap';
-  wrap.innerHTML = renderCh1Sheet(data);
+  wrap.innerHTML = renderCh1Sheet(data) + ch1ShareRow();
   appendToChat(wrap);
 }
 
@@ -1258,7 +1267,7 @@ function maybeShowCh1Btn() {
 function openCh1Overlay() {
   const c = loadCh1();
   if (!c?.data) return;
-  document.getElementById('ch1-ov-body').innerHTML = '<div class="ch1-wrap">' + renderCh1Sheet(c.data) + '</div>';
+  document.getElementById('ch1-ov-body').innerHTML = '<div class="ch1-wrap">' + renderCh1Sheet(c.data) + ch1ShareRow() + '</div>';
   document.getElementById('ch1-ov').classList.add('open');
 }
 function closeCh1Overlay() {
@@ -1301,7 +1310,7 @@ function addMilestoneCard() {
   keepAwake();
   fetchCh1Data().then(d => {
     try { localStorage.setItem(CH1_KEY, JSON.stringify({ at: new Date().toISOString(), data: d })); } catch(e) {}
-    wrap.innerHTML = renderCh1Sheet(d);
+    wrap.innerHTML = renderCh1Sheet(d) + ch1ShareRow();
     maybeShowCh1Btn();
   }).catch(e => {
     wrap.innerHTML = `<div class="vb"><div style="font-size:20px">📄</div>
@@ -2515,9 +2524,10 @@ function printBrief() {
 function closeBrief() { document.getElementById('brief-ov').classList.remove('open'); }
 
 // ── シェア用シート ──
-// 要望書の2ページ目（氏名・日付を含まない、匿名の紹介ページ）だけを画像化し、
-// 端末のネイティブ共有シートで送る。サーバーには何もアップロードしない。
+// 対象の要素を画像化し、端末のネイティブ共有シートで送る。サーバーには何もアップロードしない。
+// 要望書の紹介ページと、第1章の記録の両方がこの仕組みを使う。
 let _shareCanvas = null;
+let _shareCfg = null;
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
@@ -2529,13 +2539,12 @@ function loadScriptOnce(src) {
   });
 }
 
-async function openShareSheet() {
-  const frame = document.getElementById('brief-frame');
-  const shareEl = frame.contentDocument?.querySelector('.pg-share');
+async function openShareFor(el, cfg) {
   const wrap = document.getElementById('share-preview-wrap');
   const confirmBtn = document.getElementById('share-confirm-btn');
-  if (!shareEl) { alert('要望書がまだ準備できていません。少し待ってからもう一度お試しください。'); return; }
   _shareCanvas = null;
+  _shareCfg = cfg;
+  document.querySelector('#share-ov .share-card-lede').textContent = cfg.lede;
   confirmBtn.disabled = true;
   wrap.innerHTML = '<div class="rep-spin"></div>';
   document.getElementById('share-ov').classList.add('open');
@@ -2543,8 +2552,8 @@ async function openShareSheet() {
     await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
     // Webフォント（Google Fonts）の読み込み完了を待ってから画像化する
     // （待たないとフォールバック書体でキャプチャされることがある）
-    try { await frame.contentDocument.fonts.ready; } catch(e) {}
-    const canvas = await html2canvas(shareEl, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    try { await (cfg.fontsDoc || document).fonts.ready; } catch(e) {}
+    const canvas = await html2canvas(el, { backgroundColor: cfg.bg || '#ffffff', scale: 2, useCORS: true });
     _shareCanvas = canvas;
     const img = document.createElement('img');
     img.src = canvas.toDataURL('image/png');
@@ -2554,32 +2563,69 @@ async function openShareSheet() {
     confirmBtn.disabled = false;
   } catch(e) {
     wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-light);padding:8px">プレビューの作成に失敗しました。もう一度お試しください。</p>';
+  } finally {
+    try { cfg.cleanup?.(); } catch(e) {}
   }
+}
+
+function openShareSheet() {
+  const frame = document.getElementById('brief-frame');
+  const shareEl = frame.contentDocument?.querySelector('.pg-share');
+  if (!shareEl) { alert('要望書がまだ準備できていません。少し待ってからもう一度お試しください。'); return; }
+  openShareFor(shareEl, {
+    name: '暮らしと住まいの要望書.png',
+    title: '暮らしと住まいの要望書',
+    text: 'AIとの対話から、自分の言葉で作った住まいの要望書です。',
+    lede: 'この体験が気に入ったら、このページだけ紹介してくださいませんか。氏名・日付など、あなたを特定できる情報は含まれていません。',
+    fontsDoc: frame.contentDocument,
+  });
+}
+
+// 第1章の記録を画像でシェアする。
+// 画面上の表示位置（全画面ビュー／対話の中）に依存すると幅が崩れるため、
+// 撮影用に固定幅の複製を画面外に組んでキャプチャする
+function openCh1Share() {
+  const c = loadCh1();
+  if (!c?.data) { alert('第1章の記録がまだありません。'); return; }
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;left:-9999px;top:0;width:480px;padding:16px;background:#f7f5f0';
+  holder.innerHTML = renderCh1Sheet(c.data);
+  // 画像にだけ、受け取った人が入口にたどり着ける表記を入れる（画面上の表示は変えない）
+  const f = holder.querySelectorAll('.ch1-foot span');
+  if (f[1]) f[1].textContent = 'sumai-dialogue.com';
+  document.body.appendChild(holder);
+  openShareFor(holder, {
+    name: '第1章の記録.png',
+    title: '第1章の記録',
+    text: 'AIとの対話でできた、私の一日の記録です。 https://sumai-dialogue.com/',
+    lede: 'この一枚には、あなたの呼び名と対話で話した内容が入っています。共有してよい内容か、プレビューで確かめてからお進みください。',
+    event: 'share-ch1',
+    bg: '#f7f5f0',
+    cleanup: () => holder.remove(),
+  });
 }
 
 function closeShareSheet() { document.getElementById('share-ov').classList.remove('open'); }
 
 async function confirmShareBrief() {
-  if (!_shareCanvas) return;
+  if (!_shareCanvas || !_shareCfg) return;
+  const cfg = _shareCfg;
   const btn = document.getElementById('share-confirm-btn');
   btn.disabled = true;
   _shareCanvas.toBlob(async (blob) => {
     if (!blob) { btn.disabled = false; return; }
-    const file = new File([blob], '暮らしと住まいの要望書.png', { type: 'image/png' });
+    const file = new File([blob], cfg.name, { type: 'image/png' });
     try {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: '暮らしと住まいの要望書',
-          text: 'AIとの対話から、自分の言葉で作った住まいの要望書です。'
-        });
+        await navigator.share({ files: [file], title: cfg.title, text: cfg.text });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = '暮らしと住まいの要望書.png';
+        a.href = url; a.download = cfg.name;
         a.click();
         URL.revokeObjectURL(url);
       }
+      if (cfg.event) sendEvent(cfg.event);
       closeShareSheet();
     } catch(e) {
       // ユーザーがシェアをキャンセルした場合は何もしない
