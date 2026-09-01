@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260901214631"></script>
+<script src="brief_render.js?v=20260901215530"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1751,7 +1751,7 @@ async function sendMsg() {
   if (userTurns === 0) {
     sendEvent('first-send');
     // たどり着いた経路の匿名集計（選択肢名のみ。自由入力は via-own）
-    const routeMap = { 'noteの記事を読んで': 'via-note', 'ブログやSNSで見かけて': 'via-sns', '知人に紹介されて': 'via-referral' };
+    const routeMap = { 'noteの記事を読んで': 'via-note', 'ホームページのブログを読んで': 'via-blog', 'SNSで見かけて': 'via-sns', 'ブログやSNSで見かけて': 'via-sns', '知人に紹介されて': 'via-referral' };
     const route = routeMap[text] || 'via-own';
     sendEvent(route);
     // 深さ×経路の掛け合わせ用に経路名だけ端末に残す（個人情報なし）
@@ -2838,7 +2838,7 @@ function start() {
     // 最初の一言は選択式にする（打つ敷居を下げる。2026-08-15: 始めた5人中1人しか送らなかった実測から）。
     // 「自分の言葉で話す」は常に最後に置く（答えを限定しない・PR-05）
     const q = 'こんにちは。はじめまして。住まいの対話のAIです。\n今日はありがとうございます。\n\nここにたどり着いたきっかけは、なんでしたか？';
-    const choices = ['noteの記事を読んで', 'ブログやSNSで見かけて', '知人に紹介されて', '自分の言葉で話す'];
+    const choices = ['noteの記事を読んで', 'ホームページのブログを読んで', 'SNSで見かけて', '知人に紹介されて', '自分の言葉で話す'];
     addMsg('ai', q);
     setStage('はじまり');
     history.push({ role: 'assistant', content: q + '\n【選択肢: ' + choices.join(' / ') + '】' });
