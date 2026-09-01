@@ -390,6 +390,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .ch1-q{font-family:var(--serif);font-weight:300;font-size:14px;line-height:2.05;margin:0 0 6px}
 .ch1-foot{margin-top:26px;padding-top:11px;border-top:1px solid var(--c1-hair);display:flex;justify-content:space-between;font-size:10px;color:var(--c1-faint);letter-spacing:.16em}
 .ch1-share-row{text-align:right;margin-top:8px}
+/* シェア画像の1ページ（4:5固定・撮影専用） */
+.ch1-page{height:600px;box-sizing:border-box;display:flex;flex-direction:column}
+.ch1-page .ch1-page-body{flex:1;overflow:hidden;min-height:0}
+.ch1-page .ch1-foot{margin-top:14px}
 .ch1-loading{border:1px solid var(--ink-faint);background:var(--paper-card);border-radius:var(--r);padding:16px 18px;font-size:13px;color:var(--ink-mid);line-height:1.6;animation:ch1pulse 1.6s ease-in-out infinite}
 @keyframes ch1pulse{0%,100%{opacity:1}50%{opacity:.55}}
 /* 第1章の記録をいつでも開ける全画面ビュー（支払い後・後の章でも本の第一ページとして残す） */
@@ -417,7 +421,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 /* シェア用シートの確認 */
 .share-card{max-width:300px}
 .share-card-lede{font-size:12px;line-height:1.7;color:var(--ink-mid);margin:0 0 16px}
-.share-preview-wrap{background:var(--paper-warm);border-radius:var(--r-sm);overflow:hidden;margin-bottom:16px;min-height:120px;display:flex;align-items:center;justify-content:center;padding:8px}
+.share-preview-wrap{background:var(--paper-warm);border-radius:var(--r-sm);overflow-y:auto;max-height:52vh;margin-bottom:16px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;padding:8px}
 .share-preview-wrap img{display:block;width:100%;height:auto;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
 #share-confirm-btn:disabled{opacity:.5;cursor:default}
 
@@ -681,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260829201057"></script>
+<script src="brief_render.js?v=20260901205802"></script>
 
 <script>
 // ── API接続設定 ──
@@ -2526,7 +2530,7 @@ function closeBrief() { document.getElementById('brief-ov').classList.remove('op
 // ── シェア用シート ──
 // 対象の要素を画像化し、端末のネイティブ共有シートで送る。サーバーには何もアップロードしない。
 // 要望書の紹介ページと、第1章の記録の両方がこの仕組みを使う。
-let _shareCanvas = null;
+let _shareCanvases = null;
 let _shareCfg = null;
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
@@ -2539,10 +2543,11 @@ function loadScriptOnce(src) {
   });
 }
 
-async function openShareFor(el, cfg) {
+async function openShareFor(els, cfg) {
+  if (!Array.isArray(els)) els = [els];
   const wrap = document.getElementById('share-preview-wrap');
   const confirmBtn = document.getElementById('share-confirm-btn');
-  _shareCanvas = null;
+  _shareCanvases = null;
   _shareCfg = cfg;
   document.querySelector('#share-ov .share-card-lede').textContent = cfg.lede;
   confirmBtn.disabled = true;
@@ -2553,13 +2558,19 @@ async function openShareFor(el, cfg) {
     // Webフォント（Google Fonts）の読み込み完了を待ってから画像化する
     // （待たないとフォールバック書体でキャプチャされることがある）
     try { await (cfg.fontsDoc || document).fonts.ready; } catch(e) {}
-    const canvas = await html2canvas(el, { backgroundColor: cfg.bg || '#ffffff', scale: 2, useCORS: true });
-    _shareCanvas = canvas;
-    const img = document.createElement('img');
-    img.src = canvas.toDataURL('image/png');
-    img.alt = 'シェア用プレビュー';
+    const canvases = [];
+    for (const el of els) {
+      canvases.push(await html2canvas(el, { backgroundColor: cfg.bg || '#ffffff', scale: 2, useCORS: true }));
+    }
+    _shareCanvases = canvases;
     wrap.innerHTML = '';
-    wrap.appendChild(img);
+    canvases.forEach(canvas => {
+      const img = document.createElement('img');
+      img.src = canvas.toDataURL('image/png');
+      img.alt = 'シェア用プレビュー';
+      img.style.marginBottom = '8px';
+      wrap.appendChild(img);
+    });
     confirmBtn.disabled = false;
   } catch(e) {
     wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-light);padding:8px">プレビューの作成に失敗しました。もう一度お試しください。</p>';
@@ -2582,25 +2593,89 @@ function openShareSheet() {
 }
 
 // 第1章の記録を画像でシェアする。
-// 画面上の表示位置（全画面ビュー／対話の中）に依存すると幅が崩れるため、
-// 撮影用に固定幅の複製を画面外に組んでキャプチャする
-function openCh1Share() {
+// 記録の全文を、SNSで読める縦横比（4:5・480×600）のページに流し込み、
+// 必要な枚数の画像に分けて共有する。内容は削らない。
+// 撮影は画面外に組んだ固定幅の複製で行う（画面上の表示位置に依存すると幅が崩れるため）
+
+// 記録をページに流し込むための小さな断片の列。keepnext=罫線や見出しなど、次の内容と離れてはいけないもの
+function ch1PageBlocks(d) {
+  const blocks = [];
+  blocks.push({ html: `<div class="ch1-lead-lbl">${ch1Esc(d.lead?.label || '')}</div>`, keepnext: true });
+  blocks.push({ html: `<p class="ch1-lead">「${ch1Esc(d.lead?.text || '')}」</p>` });
+  blocks.push({ html: `<p class="ch1-ctx">話し手：${ch1Esc(d.speaker || '')}${d.context ? '　—　' + ch1Esc(d.context) : ''}</p>` });
+  (d.sections || []).forEach(s => {
+    blocks.push({ html: '<div class="ch1-rule"></div>', keepnext: true });
+    blocks.push({ html: `<div class="ch1-sec">${ch1Esc(s.title || '')}</div>`, keepnext: true });
+    const items = (s.items || []).map(ch1Esc);
+    if (s.style === 'flow') items.forEach(i => blocks.push({ html: `<div class="ch1-fl">${i}</div>` }));
+    else if (s.style === 'quote') items.forEach(i => blocks.push({ html: `<p class="ch1-q">「${i}」</p>` }));
+    else blocks.push({ html: `<p class="ch1-para">${items.join(' ')}</p>` });
+  });
+  if (d.closing_quote?.text) {
+    blocks.push({ html: '<div class="ch1-rule"></div>', keepnext: true });
+    blocks.push({ html: `<div class="ch1-sec">${ch1Esc(d.closing_quote.label || '語られた言葉')}</div>`, keepnext: true });
+    blocks.push({ html: `<p class="ch1-q">「${ch1Esc(d.closing_quote.text)}」</p>` });
+  }
+  return blocks;
+}
+
+function ch1NewPage() {
+  const page = document.createElement('div');
+  page.className = 'ch1-sheet ch1-page';
+  page.innerHTML = `<span class="ch1-folio"></span><div class="ch1-kick">CHAPTER 1</div>
+    <div class="ch1-ttl">第1章の記録　目的とみらい</div>
+    <div class="ch1-page-body"></div>
+    <div class="ch1-foot"><span>住まいの対話</span><span>sumai-dialogue.com</span></div>`;
+  return page;
+}
+
+// 断片を上から順にページへ入れ、あふれたら次のページへ。見出しだけがページ末に残らないよう一緒に送る
+function buildCh1Pages(holder, d) {
+  const pages = [];
+  let page, body;
+  const newPage = () => {
+    page = ch1NewPage(); holder.appendChild(page); pages.push(page);
+    body = page.querySelector('.ch1-page-body');
+  };
+  newPage();
+  for (const b of ch1PageBlocks(d)) {
+    const t = document.createElement('template');
+    t.innerHTML = b.html.trim();
+    const node = t.content.firstElementChild;
+    body.appendChild(node);
+    if (body.scrollHeight > body.clientHeight + 1 && body.children.length > 1) {
+      const movers = [node];
+      let prev = node.previousElementSibling;
+      while (prev && prev.dataset.keepnext === '1') { movers.unshift(prev); prev = prev.previousElementSibling; }
+      // ページの中身が丸ごと移動対象なら、そのページはそのまま使う（無限ループ防止）
+      if (movers.length < body.children.length) {
+        newPage();
+        movers.forEach(m => body.appendChild(m));
+      }
+    }
+    if (b.keepnext) node.dataset.keepnext = '1';
+  }
+  pages.forEach((p, i) => {
+    p.querySelector('.ch1-folio').textContent = pages.length > 1 ? `${i + 1} / ${pages.length}` : '01';
+  });
+  return pages;
+}
+
+async function openCh1Share() {
   const c = loadCh1();
   if (!c?.data) { alert('第1章の記録がまだありません。'); return; }
   const holder = document.createElement('div');
-  holder.style.cssText = 'position:absolute;left:-9999px;top:0;width:480px;padding:16px;background:#f7f5f0';
-  holder.innerHTML = renderCh1Sheet(c.data);
-  // 画像にだけ、受け取った人が入口にたどり着ける表記を入れる（画面上の表示は変えない）
-  const f = holder.querySelectorAll('.ch1-foot span');
-  if (f[1]) f[1].textContent = 'sumai-dialogue.com';
+  holder.style.cssText = 'position:absolute;left:-9999px;top:0;width:480px;background:#f2efe6';
   document.body.appendChild(holder);
-  openShareFor(holder, {
+  // ページ割りは行の高さに依存するので、フォントが揃ってから測る
+  try { await document.fonts.ready; } catch(e) {}
+  const pages = buildCh1Pages(holder, c.data);
+  openShareFor(pages, {
     name: '第1章の記録.png',
     title: '第1章の記録',
     text: 'AIとの対話でできた、私の一日の記録です。 https://sumai-dialogue.com/',
-    lede: 'この一枚には、あなたの呼び名と対話で話した内容が入っています。共有してよい内容か、プレビューで確かめてからお進みください。',
+    lede: 'この記録には、あなたの呼び名と対話で話した内容が入っています。共有してよい内容か、プレビューで確かめてからお進みください。',
     event: 'share-ch1',
-    bg: '#f7f5f0',
     cleanup: () => holder.remove(),
   });
 }
@@ -2608,31 +2683,34 @@ function openCh1Share() {
 function closeShareSheet() { document.getElementById('share-ov').classList.remove('open'); }
 
 async function confirmShareBrief() {
-  if (!_shareCanvas || !_shareCfg) return;
+  if (!_shareCanvases?.length || !_shareCfg) return;
   const cfg = _shareCfg;
   const btn = document.getElementById('share-confirm-btn');
   btn.disabled = true;
-  _shareCanvas.toBlob(async (blob) => {
-    if (!blob) { btn.disabled = false; return; }
-    const file = new File([blob], cfg.name, { type: 'image/png' });
-    try {
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: cfg.title, text: cfg.text });
-      } else {
-        const url = URL.createObjectURL(blob);
+  try {
+    const blobs = await Promise.all(_shareCanvases.map(c => new Promise(r => c.toBlob(r, 'image/png'))));
+    if (blobs.some(b => !b)) return;
+    const base = cfg.name.replace(/\.png$/, '');
+    const files = blobs.map((b, i) =>
+      new File([b], blobs.length === 1 ? cfg.name : `${base}_${i + 1}.png`, { type: 'image/png' }));
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ files, title: cfg.title, text: cfg.text });
+    } else {
+      files.forEach(f => {
+        const url = URL.createObjectURL(f);
         const a = document.createElement('a');
-        a.href = url; a.download = cfg.name;
+        a.href = url; a.download = f.name;
         a.click();
         URL.revokeObjectURL(url);
-      }
-      if (cfg.event) sendEvent(cfg.event);
-      closeShareSheet();
-    } catch(e) {
-      // ユーザーがシェアをキャンセルした場合は何もしない
-    } finally {
-      btn.disabled = false;
+      });
     }
-  }, 'image/png');
+    if (cfg.event) sendEvent(cfg.event);
+    closeShareSheet();
+  } catch(e) {
+    // ユーザーがシェアをキャンセルした場合は何もしない
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function renderFullReport(json, qaText) {
