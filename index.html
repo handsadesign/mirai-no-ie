@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260901205802"></script>
+<script src="brief_render.js?v=20260901214631"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1752,11 +1752,22 @@ async function sendMsg() {
     sendEvent('first-send');
     // たどり着いた経路の匿名集計（選択肢名のみ。自由入力は via-own）
     const routeMap = { 'noteの記事を読んで': 'via-note', 'ブログやSNSで見かけて': 'via-sns', '知人に紹介されて': 'via-referral' };
-    sendEvent(routeMap[text] || 'via-own');
+    const route = routeMap[text] || 'via-own';
+    sendEvent(route);
+    // 深さ×経路の掛け合わせ用に経路名だけ端末に残す（個人情報なし）
+    try { localStorage.setItem('mirai-no-ie-route-v1', route); } catch(e) {}
   }
-  // 対話の深さ（この送信で利用者の発言が5・10・15回目に達したとき。中身は含まない）
+  // 対話の深さ（この送信で利用者の発言がn回目に達したとき。中身は含まない）
+  // 2〜4はSTEP0研究（入口のどの要素で止まるか）のための解像度
   const nth = userTurns + 1;
-  if (nth === 5 || nth === 10 || nth === 15) sendEvent('turns-' + nth);
+  if ([2, 3, 4, 5, 10, 15].includes(nth)) sendEvent('turns-' + nth);
+  // 5往復に達した人がどの経路から来たか（数だけ。個人は追わない）
+  if (nth === 5) {
+    try {
+      const r = localStorage.getItem('mirai-no-ie-route-v1');
+      if (r) sendEvent('turns5-' + r);
+    } catch(e) {}
+  }
   if (userTurns >= BRAKES.maxUserTurns) {
     if (confirm('対話が想定の上限に達しました。\nこれまでの内容で「住まい作り要望書」を作成しますか？\n\n（キャンセルした場合、このメッセージは送信されません。「記録を保存」で控えを残すことをおすすめします）')) {
       generateReport();
@@ -1790,12 +1801,14 @@ async function sendMsg() {
     } else if (aiText.includes('【お約束カード】')) {
       addMsg('ai', clean);
       addPromiseCard();
+      sendEvent('promise-shown'); // 表示された回数（再開時の復元では送らない。同意は agree-care/price）
       saveSession();
       document.getElementById('rewind-btn').classList.add('visible');
       document.getElementById('export-btn').classList.add('visible');
     } else if (aiText.includes('【内省カード】')) {
       addMsg('ai', clean);
       addReflectionCard();
+      sendEvent('reflect-shown'); // 表示された回数（再開時の復元では送らない。通過は reflect-go）
       saveSession();
       document.getElementById('rewind-btn').classList.add('visible');
       document.getElementById('export-btn').classList.add('visible');
