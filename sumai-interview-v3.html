@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260929215013"></script>
+<script src="brief_render.js?v=20260929220400"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1712,10 +1712,14 @@ function withCache(messages) {
 // cutTurnArtifact で受信時にも切り落とすので、偽の発言は履歴に一切入らない。
 // 行内形式（「user 特にない」）や偽の「進行チェック」も出たため、行頭ラベルと語そのもので切る
 const TURN_ARTIFACTS = ['Roosevelt', 'Model failed to generate response', '\nuser', '\nUser', '進行チェック'];
-function cutTurnArtifact(t) {
+function cutTurnArtifact(t, report) {
   for (const a of TURN_ARTIFACTS) {
     const i = t.indexOf(a);
-    if (i >= 0) t = t.slice(0, i).trim();
+    if (i >= 0) {
+      t = t.slice(0, i).trim();
+      // 発生頻度の匿名カウント（内容は送らない）。S-030が他の利用者でも起きているかを初めて観測できる
+      if (report) sendEvent('artifact-cut');
+    }
   }
   return t;
 }
@@ -1744,7 +1748,7 @@ async function callClaude(userMsg) {
   // content配列の先頭が常に text ブロックとは限らない（拡張思考が有効だと
   // 先頭に thinking ブロックが入る）。type:'text' のブロックを探して使う。
   const textBlock = (data.content || []).find(b => b.type === 'text');
-  let txt = cutTurnArtifact(textBlock?.text || '');
+  let txt = cutTurnArtifact(textBlock?.text || '', true);
   if (!txt) txt = 'うまく受け取れませんでした。もう一度お試しください。';
   history.push({ role: 'assistant', content: txt });
   return txt;
