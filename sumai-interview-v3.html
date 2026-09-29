@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260901215530"></script>
+<script src="brief_render.js?v=20260929205434"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1817,8 +1817,15 @@ async function sendMsg() {
       const saveMatch = aiText.match(/【セクション保存[:：]\s*([^】]+)】/);
       if (saveMatch) {
         const label = saveMatch[1].trim();
-        // 第2章の関門（SP-405）: 未消化があれば保存せず、続きを聞きに行く
-        if (label === 'STEP2B' && !(await ch2GatePassed())) {
+        // 第2章の関門（SP-405）: 未消化があれば保存せず、続きを聞きに行く。
+        // 判定（数秒）の間も「…」を出し続ける——表示が途切れると、閉じ宣言の問いに先に答えたくなる（2026-09-29 オーナー観察）
+        let gatedStep2b = false;
+        if (label === 'STEP2B') {
+          showTyping();
+          gatedStep2b = !(await ch2GatePassed());
+          hideTyping();
+        }
+        if (gatedStep2b) {
           // 保存しない（関門が続きの対話を開始済み）
         } else {
           addSaveIndicator(label);
