@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260929205816"></script>
+<script src="brief_render.js?v=20260929212523"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1632,7 +1632,10 @@ function buildResumeGreeting(session) {
 function resumeSession() {
   const session = window._pendingSession;
   if (!session) return;
-  history = session.history;
+  // 保存済みの履歴にS-030の汚染（偽のuser発言）が残っていたら、読み込み時に切り落とす。
+  // 2026-09-29以前に本番で汚染されたセッションを、リロードで治すため
+  history = session.history.map(m =>
+    m.role === 'assistant' ? { ...m, content: cutTurnArtifact(m.content) } : m);
   setStage(session.currentStage);
   document.getElementById('export-btn').classList.add('visible');
   requestPersist();
@@ -1692,7 +1695,9 @@ function withCache(messages) {
 // 生成の紛れで、AIが利用者の発言まで自分で書いてしまうことがある（2026-08-11 実利用で2回）。
 // 境目には決まって特定の語が現れる（話者交代の内部トークンが表示上その語に化けていると見られる）。
 // ①その語で生成を止める ②万一通り抜けたら、その語以降を切り落とす、の二段構えで塞ぐ。
-const TURN_ARTIFACTS = ['Roosevelt', 'Model failed to generate response'];
+// '\nuser\n' 等: S-030（返信の中で利用者の発言を演じる）。停止シーケンスで生成を打ち切り、
+// cutTurnArtifact で受信時にも切り落とすので、偽の発言は履歴に一切入らない
+const TURN_ARTIFACTS = ['Roosevelt', 'Model failed to generate response', '\nuser\n', '\nUser\n'];
 function cutTurnArtifact(t) {
   for (const a of TURN_ARTIFACTS) {
     const i = t.indexOf(a);
