@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260929224042"></script>
+<script src="brief_render.js?v=20260929225659"></script>
 
 <script>
 // ── API接続設定 ──
@@ -842,8 +842,10 @@ function maybeAddPaywall(label) {
   const card = document.createElement('div');
   card.className = 'paygate';
   card.id = 'paygate-' + label;
+  // 2つ目の関門（STEP3）はすでに一度支払った人が見るので「有料です」だと変（2026-09-29 オーナー）
+  const badge = label === 'STEP0-1' ? 'ここから先は有料です' : 'ここから先は追加料金が必要です';
   card.innerHTML = `
-    <div class="paygate-badge">ここから先は有料です</div>
+    <div class="paygate-badge">${badge}</div>
     <div class="paygate-ttl">${stage.label}</div>
     <div class="paygate-desc">${stage.desc}</div>
     ${stage.unlocks ? `<div class="paygate-unlocks-lbl">この料金でできること</div>
