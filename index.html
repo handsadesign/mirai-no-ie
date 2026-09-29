@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260929205434"></script>
+<script src="brief_render.js?v=20260929205816"></script>
 
 <script>
 // ── API接続設定 ──
@@ -2066,7 +2066,9 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
     headers: apiHeaders(),
     // thinking disabled: sonnet-5は未指定だと自動思考しmax_tokensを食う（callClaudeと同じ対策）。
     // extraで上書き可（opus-4-8もdisabled指定を受け付けるためeditorial呼び出しもこのままでよい）
-    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-5', max_tokens: maxTokens, stream: true, thinking: { type: 'disabled' }, messages: withCache(messages) }, extra))
+    // stop_sequences: 返信の中で利用者の発言を演じ始めたら（「user」単独行）そこで生成を打ち切る。
+    // S-030（2026-09-29 同日2回）の安全網。正規の返信部分だけが残る
+    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-5', max_tokens: maxTokens, stream: true, thinking: { type: 'disabled' }, stop_sequences: ['\nuser\n', '\nUser\n'], messages: withCache(messages) }, extra))
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
