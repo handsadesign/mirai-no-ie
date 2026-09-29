@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260929220400"></script>
+<script src="brief_render.js?v=20260929224042"></script>
 
 <script>
 // ── API接続設定 ──
@@ -876,6 +876,22 @@ async function openCheckout(label) {
 }
 
 // 支払いをWorker経由でStripeに照会し、確認できたら解錠する
+// 支払い完了が「対話の記録がないブラウザ」で開かれたときの案内（S-031）
+function showOrphanPaySuccess(sid) {
+  const ov = document.createElement('div');
+  ov.className = 'mock-pay-ov open';
+  ov.innerHTML = `<div class="mock-pay-card">
+    <div class="mock-pay-hd">お支払いを確認しました</div>
+    <p style="font-size:13px;line-height:1.8;color:var(--ink-mid);margin-bottom:10px">ありがとうございます。ただ、いま開いているこの画面には対話の記録が見つかりません。決済アプリが、別のブラウザでこのページを開いた可能性があります。</p>
+    <p style="font-size:13px;line-height:1.8;color:var(--ink-mid);margin-bottom:10px"><strong>対話をしていた元の画面に戻り</strong>、料金カードの「購入復元コードをお持ちの方はこちら」に下のコードを入力すると、続きに進めます。</p>
+    <div id="orphan-sid" style="font-family:monospace;font-size:11px;word-break:break-all;background:var(--paper-warm);border:1px solid var(--ink-faint);border-radius:8px;padding:10px 12px;margin:10px 0"></div>
+    <button class="mock-pay-btn" onclick="const t=document.getElementById('orphan-sid').textContent;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{this.textContent='コピーしました ✓'}).catch(()=>{})">コードをコピー</button>
+    <button class="mock-pay-cancel" onclick="this.closest('.mock-pay-ov').remove()">閉じる</button>
+  </div>`;
+  ov.querySelector('#orphan-sid').textContent = sid;
+  document.body.appendChild(ov);
+}
+
 async function verifyPurchase(sessionId) {
   const res = await fetch(PROXY_URL + '/verify?session_id=' + encodeURIComponent(sessionId));
   const j = await res.json();
@@ -2904,7 +2920,13 @@ window.addEventListener('load', async () => {
     history_cleanUrl();
     try {
       const j = await verifyPurchase(qp.get('session_id'));
-      alert(`お支払いを確認しました。ありがとうございます。\n\n購入復元コード（控え）:\n${j.session_id}\n\n端末の記録が消えた場合、このコードで購入を復元できます。「記録を保存」のファイルにも含まれます。`);
+      if (loadSession()?.history?.length) {
+        alert(`お支払いを確認しました。ありがとうございます。\n\n購入復元コード（控え）:\n${j.session_id}\n\n端末の記録が消えた場合、このコードで購入を復元できます。「記録を保存」のファイルにも含まれます。`);
+      } else {
+        // 対話の記録がないブラウザで支払い完了が開かれた（決済アプリの内蔵ブラウザ等・S-031）。
+        // まっさらなトップを見せず、元の画面へ戻る道順と復元コードを渡す
+        showOrphanPaySuccess(j.session_id);
+      }
     } catch(e) {
       alert('お支払いの確認に失敗しました。\n' + e.message + '\n\n決済メールに記載のコードで「購入復元」をお試しいただくか、時間をおいて再読み込みしてください。');
     }
