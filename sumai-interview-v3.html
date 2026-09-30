@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930093819"></script>
+<script src="brief_render.js?v=20260930101955"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1507,6 +1507,7 @@ function loadSession() {
 function clearSession() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(CH1_KEY); // 第1章の記録は対話に紐づくので一緒に消す
+  localStorage.removeItem(CH2_MS_KEY); // 第2章の節目カウントも
 }
 
 // ── 記録ファイルの保存・読み込み（端末内バックアップ）──
@@ -1835,6 +1836,7 @@ async function sendMsg() {
     const aiText = await callClaude(text);
     hideTyping();
     const clean = cleanText(aiText);
+    ch2MilestoneTick(); // 第2章なら発言を数え、20発言ごとに裏で消化率を見て節目を知らせる
 
     const stageMatch = aiText.match(/【ステージ[:：]\s*([^】]+)】/);
     if (stageMatch) setStage(stageMatch[1].trim());
@@ -2252,6 +2254,46 @@ async function checkCh2Coverage() {
   const t = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   const m = t.match(/\{[\s\S]*\}/);
   return JSON.parse(m[0]);
+}
+
+// ── 第2章の進捗の節目（関門の算数を、ときどきアプリの声で知らせる）──
+// 時間の目安は嘘になりうるが、44項目の消化率は嘘をつかない（2026-09-30 オーナー）。
+// every は調整できるように定数にしておく（まず20発言ごと）。判定は裏で非同期・失敗は無視
+const CH2_MILESTONES = {
+  every: 20,
+  notes: [
+    { pct: 75, text: 'あと少しです' },
+    { pct: 50, text: '半分まで来ました' },
+    { pct: 25, text: '伺いたいことの、4分の1ほどまで来ました' },
+  ],
+};
+const CH2_MS_KEY = 'mirai-no-ie-ch2ms-v1';
+function ch2msLoad() { try { return JSON.parse(localStorage.getItem(CH2_MS_KEY)) || { n: 0, fired: [] }; } catch(e) { return { n: 0, fired: [] }; } }
+function ch2msSave(st) { try { localStorage.setItem(CH2_MS_KEY, JSON.stringify(st)); } catch(e) {} }
+
+function addProgressNote(text) {
+  const el = document.createElement('div');
+  el.className = 'save-ind';
+  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">${text}</span>`;
+  appendToChat(el);
+}
+
+function ch2MilestoneTick() {
+  if (stageToStep(stageEl.textContent) !== 2) return;
+  const st = ch2msLoad();
+  st.n++;
+  ch2msSave(st);
+  if (st.n % CH2_MILESTONES.every !== 0) return;
+  checkCh2Coverage().then(cov => {
+    const m = String(cov?.done_ratio || '').match(/(\d+)\s*\/\s*(\d+)/);
+    if (!m) return;
+    const pct = (100 * parseInt(m[1], 10)) / parseInt(m[2], 10);
+    const note = CH2_MILESTONES.notes.find(x => pct >= x.pct && !st.fired.includes(x.pct));
+    if (!note) return;
+    st.fired.push(note.pct);
+    ch2msSave(st);
+    addProgressNote(note.text);
+  }).catch(() => {});
 }
 
 // true = 関門通過（保存してよい）。false = 未消化があり、続きの対話を開始済み
