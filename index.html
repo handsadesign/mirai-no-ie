@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930140006"></script>
+<script src="brief_render.js?v=20260930140147"></script>
 
 <script>
 // ── API接続設定 ──
@@ -698,6 +698,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 // deploy.sh が sumai-interview-v3.html を dev.html としても配るので、中身は常に同一
 const IS_DEV = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)
   || location.pathname.endsWith('/dev.html');
+// dev.html は本番と同じドメイン＝同じlocalStorageを共有するため、保存キーを別空間に分離する。
+// これが無いと、開発テストや「全消去」が本番の対話・支払い記録を壊す
+const KEYNS = location.pathname.endsWith('/dev.html') ? 'dev:' : '';
 // 公開URL上の開発版だけ、簡単な合言葉で一度だけ守る（見つけた人が開発費で使うのを防ぐ程度）
 if (location.pathname.endsWith('/dev.html')) {
   try {
@@ -815,7 +818,7 @@ const PRICING = {
 };
 
 // ── 料金の取得（Workerの/pricingが料金のマスター。届かない場合は上の既定値で表示）──
-const RECEIPT_KEY = 'mirai-no-ie-receipt-v1';
+const RECEIPT_KEY = KEYNS + 'mirai-no-ie-receipt-v1';
 let PRICE_INFO = null;
 function getReceipt() {
   try { return JSON.parse(localStorage.getItem(RECEIPT_KEY)); } catch(e) { return null; }
@@ -850,7 +853,7 @@ async function loadPricing() {
 }
 
 // ── 支払い状態（Stripe導入後もこのキーを使う）──
-const PAY_KEY = 'mirai-no-ie-paid-v08';
+const PAY_KEY = KEYNS + 'mirai-no-ie-paid-v08';
 function getPaid() {
   try { return JSON.parse(localStorage.getItem(PAY_KEY)) || {}; } catch(e) { return {}; }
 }
@@ -985,7 +988,7 @@ function sendEvent(name) {
   } catch(e) {}
 }
 
-const CONSENT_KEY = 'mirai-no-ie-consent';
+const CONSENT_KEY = KEYNS + 'mirai-no-ie-consent';
 function recordConsent(patch) {
   try {
     let c = {};
@@ -1266,7 +1269,7 @@ function reflectionNext(btn) {
 // ── 第1章の記録（一枚のシート・SP-403）──
 // 確認（要点の読み上げ）は対話の中で済んでいる。ここは「あなたの言葉がこういう形で
 // 残っていく」を見せる一枚。編集はWorkerのCHAPTER1_PROMPT（mode:'chapter1'）が行う。
-const CH1_KEY = 'mirai-no-ie-ch1-v1';
+const CH1_KEY = KEYNS + 'mirai-no-ie-ch1-v1';
 
 function loadCh1() {
   try { return JSON.parse(localStorage.getItem(CH1_KEY)); } catch(e) { return null; }
@@ -1457,7 +1460,7 @@ function sendNextStep(btn, msg) {
 }
 
 // ── マルチセッション管理 ──
-const SESSION_KEY = 'mirai-no-ie-v05';
+const SESSION_KEY = KEYNS + 'mirai-no-ie-v05';
 // 利用者向けの章名。内部ID（STEP2B等）は配管としてそのまま使い、
 // 見える言葉は「章」で統一する（成果物が一冊の本である世界観に合わせる）
 const SECTION_LABELS = {
@@ -1906,7 +1909,7 @@ async function sendMsg() {
     const route = routeMap[text] || 'via-own';
     sendEvent(route);
     // 深さ×経路の掛け合わせ用に経路名だけ端末に残す（個人情報なし）
-    try { localStorage.setItem('mirai-no-ie-route-v1', route); } catch(e) {}
+    try { localStorage.setItem(KEYNS + 'mirai-no-ie-route-v1', route); } catch(e) {}
   }
   // 対話の深さ（この送信で利用者の発言がn回目に達したとき。中身は含まない）
   // 2〜4はSTEP0研究（入口のどの要素で止まるか）のための解像度
@@ -1915,7 +1918,7 @@ async function sendMsg() {
   // 5往復に達した人がどの経路から来たか（数だけ。個人は追わない）
   if (nth === 5) {
     try {
-      const r = localStorage.getItem('mirai-no-ie-route-v1');
+      const r = localStorage.getItem(KEYNS + 'mirai-no-ie-route-v1');
       if (r) sendEvent('turns5-' + r);
     } catch(e) {}
   }
@@ -2015,7 +2018,7 @@ async function sendMsg() {
 }
 
 // ── 要望書 JSON 管理 ──
-const REPORT_KEY = 'mirai-no-ie-report-v05';
+const REPORT_KEY = KEYNS + 'mirai-no-ie-report-v05';
 let reportJson = null;
 let selectedItems = new Set();
 
@@ -2165,7 +2168,7 @@ function startRevisionChat() {
   sendMsg();
 }
 
-const QA_KEY = 'mirai-no-ie-qa-v06';
+const QA_KEY = KEYNS + 'mirai-no-ie-qa-v06';
 
 const QA_PROMPT = `これまでの対話を、そのまま資料として使えるQ&A形式の読みやすい記事にまとめてください。
 
@@ -2388,7 +2391,7 @@ const CH2_MILESTONES = {
     { pct: 25, text: '伺いたいことの、4分の1ほどまで来ました' },
   ],
 };
-const CH2_MS_KEY = 'mirai-no-ie-ch2ms-v1';
+const CH2_MS_KEY = KEYNS + 'mirai-no-ie-ch2ms-v1';
 function ch2msLoad() { try { return JSON.parse(localStorage.getItem(CH2_MS_KEY)) || { n: 0, fired: [] }; } catch(e) { return { n: 0, fired: [] }; } }
 function ch2msSave(st) { try { localStorage.setItem(CH2_MS_KEY, JSON.stringify(st)); } catch(e) {} }
 
@@ -2506,7 +2509,7 @@ function openHelp() { document.getElementById('help-ov').classList.add('open'); 
 function closeHelp() { document.getElementById('help-ov').classList.remove('open'); }
 
 // 初回だけ、「使い方」ボタン自体を控えめに点滅させて気づいてもらう（一度見たら二度と光らない）
-const HELP_COACH_KEY = 'mirai-no-ie-help-coach-seen';
+const HELP_COACH_KEY = KEYNS + 'mirai-no-ie-help-coach-seen';
 function maybeAttnHelpBtn() {
   try { if (localStorage.getItem(HELP_COACH_KEY)) return; } catch(e) {}
   document.getElementById('help-btn')?.classList.add('attn');
@@ -2532,7 +2535,7 @@ function openFullReportFromStorage() {
 // ── 住まい作り要望書（ブック体裁 / Design Brief）───────────────────────────────
 // EDITORIAL（脚色防止ガードレール下でAIが作る編集素材）を生成し、renderBrief で描画。
 // キャッシュは report.generatedAt に紐づけ、要望が更新されたら自動で作り直す。
-const EDITORIAL_KEY = 'mirai-no-ie-editorial-v1';
+const EDITORIAL_KEY = KEYNS + 'mirai-no-ie-editorial-v1';
 const _BRIEF_EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{FE00}-\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{200D}]+/gu;
 
 function _briefClean(t) {
@@ -2577,7 +2580,7 @@ async function generateEditorial(report, onProgress) {
 // ── 対話の記録の清書（音声入力の誤変換だけを直す）──
 // 直すのは明らかな誤変換・脱字・句読点のみ（Worker側の校正プロンプトが厳守）。
 // 失敗したら原文のまま表示する（清書は上乗せであって前提にしない）。
-const TXCLEAN_KEY = 'mirai-no-ie-txclean-v2';
+const TXCLEAN_KEY = KEYNS + 'mirai-no-ie-txclean-v2';
 
 // 清書は発言ごとに覚える（発言の文面をキーにした辞書）。
 // こうすると、対話が伸びたときも記録を読み込み直したときも、
