@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930101955"></script>
+<script src="brief_render.js?v=20260930133120"></script>
 
 <script>
 // ── API接続設定 ──
@@ -698,6 +698,19 @@ const IS_DEV = location.protocol === 'file:' || ['localhost', '127.0.0.1'].inclu
 const PROXY_URL = IS_DEV
   ? 'https://mirai-proxy-dev.hands-a-design.workers.dev'
   : 'https://mirai-proxy.hands-a-design.workers.dev';
+// 対話モデル: 開発ではSonnet 5.5を試験運用（2026-09-30 検証で全項目クリア・文体も良）。本番はSonnet 5のまま。
+// 5.5は thinking:{type:'disabled'} が400のため、思考オフの書き方がモデルで異なる。
+// 本番切り替え時は、先に本番WorkerのALLOWED_MODELSに claude-sonnet-5-5 の手貼りが必要。
+const DIALOGUE_MODEL = IS_DEV ? 'claude-sonnet-5-5' : 'claude-sonnet-5';
+const DIALOGUE_THINKING = IS_DEV ? { type: 'between_tools' } : { type: 'disabled' };
+// 文字が流れる表示（ストリーミング）。まず開発で試験運用（2026-09-30 完走レビューより）。
+// 第2章は関門（締め宣言を見せない仕組み）と両立しないため、常に全文受信後に表示する
+const STREAM_RENDER = IS_DEV;
+// 対話1返信の上限。第2章のまとめ等は1000だと途中で切れる（2026-09-30 開発で実測・5.5はやや長め）
+const DIALOGUE_MAX_TOKENS = 2000;
+// 流れてくる途中のテキスト用の掃除: 閉じていない【…は隠してから、通常のマーカー除去
+function streamClean(t) { return cleanText(t.replace(/【[^】]*$/, '')); }
+function setMsgText(el, text) { if (el) el.innerHTML = text.replace(/\n/g, '<br>'); }
 
 if (IS_DEV) {
   window.addEventListener('DOMContentLoaded', () => {
@@ -1059,6 +1072,7 @@ function addMsg(role, text) {
   // 自分の発言は必ず最下部へ。AIの発言は、下端付近で読んでいた場合だけ追従する
   // （過去ログを読み返している最中に、長い返答で強制的に引き戻されないように）
   appendToChat(g, role === 'user');
+  return b; // ストリーミング表示の更新用に吹き出し要素を返す
 }
 
 // instant=true: タップで即送信（確定ボタンなし）。最初の一言など、敷居を最小にしたい場面用。
@@ -1746,18 +1760,28 @@ function cutTurnArtifact(t, report) {
   return t;
 }
 
-async function callClaude(userMsg) {
+async function callClaude(userMsg, onDelta) {
+  // 開発: ストリーミング transport（claudeAPI）＋ 呼び出し側のonDeltaで文字が流れる表示。
+  // 本番: 従来の非ストリーミングのまま（切り替えはオーナー判断・手貼り後）
+  if (STREAM_RENDER) {
+    history.push({ role: 'user', content: userMsg });
+    const raw = await claudeAPI(history, DIALOGUE_MAX_TOKENS, onDelta ? (n, t) => onDelta(t) : null);
+    let txt = cutTurnArtifact(raw, true);
+    if (!txt) txt = 'うまく受け取れませんでした。もう一度お試しください。';
+    history.push({ role: 'assistant', content: txt });
+    return txt;
+  }
   history.push({ role: 'user', content: userMsg });
   const res = await fetch(apiEndpoint(), {
     method: 'POST',
     headers: apiHeaders(),
     body: JSON.stringify({
-      model: 'claude-sonnet-5',
-      max_tokens: 1000,
-      // sonnet-5は thinking 未指定だと自動で内部思考し、その分も max_tokens を
-      // 消費して返答が途中で切れる（最悪、本文ゼロ）。対話は短いラリーなので
-      // 思考を明示的にオフにする（2026-07-23の途切れ不具合の修正）。
-      thinking: { type: 'disabled' },
+      model: DIALOGUE_MODEL,
+      max_tokens: DIALOGUE_MAX_TOKENS,
+      // thinking 未指定だと自動で内部思考し、その分も max_tokens を消費して
+      // 返答が途中で切れる（最悪、本文ゼロ）。対話は短いラリーなので思考はオフ
+      // （2026-07-23の途切れ不具合の修正。オフの書き方はモデル別 = DIALOGUE_THINKING）。
+      thinking: DIALOGUE_THINKING,
       stop_sequences: TURN_ARTIFACTS,
       messages: withCache(history)
     })
@@ -1833,26 +1857,36 @@ async function sendMsg() {
   showTyping();
 
   try {
-    const aiText = await callClaude(text);
+    let liveEl = null;
+    const liveRender = STREAM_RENDER && stageToStep(stageEl.textContent) !== 2;
+    const aiText = await callClaude(text, !liveRender ? null : (t) => {
+      const shown = streamClean(t);
+      if (!shown) return;
+      if (!liveEl) { hideTyping(); liveEl = addMsg('ai', ''); }
+      setMsgText(liveEl, shown);
+      if (isNearBottom()) scrollBtm();
+    });
     hideTyping();
     const clean = cleanText(aiText);
+    // 最終形で上書き（途中で切り落とし等があっても表示が自己修復する）
+    const showFinal = () => { if (liveEl) setMsgText(liveEl, clean); else addMsg('ai', clean); };
     ch2MilestoneTick(); // 第2章なら発言を数え、20発言ごとに裏で消化率を見て節目を知らせる
 
     const stageMatch = aiText.match(/【ステージ[:：]\s*([^】]+)】/);
     if (stageMatch) setStage(stageMatch[1].trim());
 
     if (aiText.includes('【要望書生成】')) {
-      addMsg('ai', clean);
+      showFinal();
       await generateReport();
     } else if (aiText.includes('【お約束カード】')) {
-      addMsg('ai', clean);
+      showFinal();
       addPromiseCard();
       sendEvent('promise-shown'); // 表示された回数（再開時の復元では送らない。同意は agree-care/price）
       saveSession();
       document.getElementById('rewind-btn').classList.add('visible');
       document.getElementById('export-btn').classList.add('visible');
     } else if (aiText.includes('【内省カード】')) {
-      addMsg('ai', clean);
+      showFinal();
       addReflectionCard();
       sendEvent('reflect-shown'); // 表示された回数（再開時の復元では送らない。通過は reflect-go）
       saveSession();
@@ -1870,7 +1904,7 @@ async function sendMsg() {
         gatedStep2b = !(await ch2GatePassed());
         hideTyping();
       }
-      if (!gatedStep2b) addMsg('ai', clean);
+      if (!gatedStep2b) showFinal();
       if (saveLabel && !gatedStep2b) {
         addSaveIndicator(saveLabel);
         saveSession(saveLabel);
@@ -2112,7 +2146,12 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
     // extraで上書き可（opus-4-8もdisabled指定を受け付けるためeditorial呼び出しもこのままでよい）
     // stop_sequences: 返信の中で利用者の発言を演じ始めたら（「user」単独行）そこで生成を打ち切る。
     // S-030（2026-09-29 同日2回）の安全網。正規の返信部分だけが残る
-    body: JSON.stringify(Object.assign({ model: 'claude-sonnet-5', max_tokens: maxTokens, stream: true, thinking: { type: 'disabled' }, stop_sequences: ['\nuser\n', '\nUser\n'], messages: withCache(messages) }, extra))
+    body: JSON.stringify((() => {
+      const req = Object.assign({ model: DIALOGUE_MODEL, max_tokens: maxTokens, stream: true, stop_sequences: ['\nuser\n', '\nUser\n'], messages: withCache(messages) }, extra);
+      // 思考オフの書き方はモデルで異なる（5.5=between_tools／それ以外=disabled）
+      req.thinking = req.model === 'claude-sonnet-5-5' ? { type: 'between_tools' } : { type: 'disabled' };
+      return req;
+    })())
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -2138,7 +2177,7 @@ async function claudeAPI(messages, maxTokens = 1000, onProgress, extra = {}) {
       sawEvent = true;
       if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
         text += ev.delta.text;
-        if (onProgress) onProgress(text.length);
+        if (onProgress) onProgress(text.length, text);
       } else if (ev.type === 'error') {
         throw new Error(ev.error?.message || 'ストリームエラー');
       }
