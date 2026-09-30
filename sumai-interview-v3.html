@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930134928"></script>
+<script src="brief_render.js?v=20260930140006"></script>
 
 <script>
 // ── API接続設定 ──
@@ -694,7 +694,20 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 // ローカル（file:// または localhost）で開いた場合は開発用Worker（mirai-proxy-dev）に
 // 自動接続する。開発Workerは統計KVを持たないため、何度試してもファネルは動かない。
 // localStorageもオリジン単位で分かれるので、本番利用者のデータと混ざることはない。
-const IS_DEV = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+// dev.html: 本番と同じ配信に置く開発版の隠しページ（iPhoneからも開発構成で試せる・2026-09-30）。
+// deploy.sh が sumai-interview-v3.html を dev.html としても配るので、中身は常に同一
+const IS_DEV = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)
+  || location.pathname.endsWith('/dev.html');
+// 公開URL上の開発版だけ、簡単な合言葉で一度だけ守る（見つけた人が開発費で使うのを防ぐ程度）
+if (location.pathname.endsWith('/dev.html')) {
+  try {
+    if (localStorage.getItem('mirai-dev-ok') !== '1') {
+      const ans = prompt('開発版です。合言葉を入力してください');
+      if (ans === 'temma') localStorage.setItem('mirai-dev-ok', '1');
+      else location.href = '/';
+    }
+  } catch(e) {}
+}
 const PROXY_URL = IS_DEV
   ? 'https://mirai-proxy-dev.hands-a-design.workers.dev'
   : 'https://mirai-proxy.hands-a-design.workers.dev';
