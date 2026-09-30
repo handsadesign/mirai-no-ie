@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930133120"></script>
+<script src="brief_render.js?v=20260930134928"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1524,6 +1524,74 @@ function clearSession() {
   localStorage.removeItem(CH2_MS_KEY); // 第2章の節目カウントも
 }
 
+// ── 開発専用: テスト開始位置の注入 ──
+// 通しテストの記録が消えても（Safariのfile://保管庫は消えやすい・2026-09-30に実害）、
+// 見たい場面から数秒で再開できるようにする。IS_DEVのときだけパネルを出す。
+// ミッチ/サリーの薄い合成履歴。後続章の検証に必要な最小限の素材だけ持たせる
+const DEV_SEED_BASE = [
+  { role: 'assistant', content: 'ここにたどり着いたきっかけは、なんでしたか？' },
+  { role: 'user', content: '知人に紹介されて' },
+  { role: 'assistant', content: '住まいを考え始めた事情を聞かせてください。' },
+  { role: 'user', content: 'キッチンが使いにくくて、暮らしを変えたいと思って。' },
+  { role: 'assistant', content: 'あなたのことは、なんとお呼びすればいいですか。' },
+  { role: 'user', content: 'ミッチです。妻はサリーです。' },
+  { role: 'assistant', content: 'ミッチさん、サリーさんですね。では未来の一日を聞かせてください。朝は？' },
+  { role: 'user', content: '7時に起きて、コーヒーを淹れて、サリーと朝ごはん。午前は在宅で仕事、午後は出社。夜は2人で夕飯を作って、23時に寝ます。' },
+  { role: 'assistant', content: '今の環境だからこそできていることはありますか。' },
+  { role: 'user', content: '駅が近いこと。あと近所のパン屋。' },
+  { role: 'assistant', content: '実現できていないことは。' },
+  { role: 'user', content: '広い作業台のキッチン。2人で並んで料理したい。' },
+  { role: 'assistant', content: 'まとめます。キッチン起点で暮らしを変えたい、2人で料理できる家。\n【セクション保存: STEP0-1】' },
+];
+const DEV_SEED_CH2 = DEV_SEED_BASE.concat([
+  { role: 'user', content: '準備ができました。第2章（一日の暮らし）を始めましょう。' },
+  { role: 'assistant', content: '【ステージ: 一日をたどる】では今の一日をたどります。朝、目が覚めて最初にすることは？' },
+  { role: 'user', content: '7時に起きて、顔を洗って、コーヒーを淹れます。' },
+  { role: 'assistant', content: '洗面はサリーさんと同じ時間帯に使いますか。' },
+  { role: 'user', content: '少しずれてる。サリーは7時半ごろ。' },
+]);
+const DEV_SEED_CH2_SUMMARY = DEV_SEED_CH2.concat([
+  { role: 'assistant', content: '（…中略: 家中の場所を一通り聞いた想定…）一日の暮らしをまとめます。\n【玄関】靴は10足・帰宅時は鍵を置く場所がない\n【洗面】時間帯ずれあり・収納狭い\n【キッチン】作業台が狭い・2人で立てない\n【洗濯】乾燥機でタオルのみ・室内干し定位置なし\n【リビング】ソファで映画・テレビは壁掛け希望\n【寝室】遮光は緩め・朝の光で起きたい\n修正・追加はありますか。\n【セクション保存: STEP2B】' },
+]);
+const DEV_SEEDS = {
+  'ch2-start': { label: '第2章の頭', stage: '目的の言語化', sections: ['STEP0-1'], paid: ['STEP0-1'], history: DEV_SEED_BASE },
+  'ch2-mid':   { label: '第2章の途中', stage: '一日をたどる', sections: ['STEP0-1'], paid: ['STEP0-1'], history: DEV_SEED_CH2 },
+  'ch3-start': { label: '第3章の頭', stage: '一日をたどる', sections: ['STEP0-1', 'STEP2A', 'STEP2B'], paid: ['STEP0-1'], history: DEV_SEED_CH2_SUMMARY },
+  'ch4-start': { label: '第4章の頭', stage: '空間の質感を探る', sections: ['STEP0-1', 'STEP2A', 'STEP2B', 'STEP3'], paid: ['STEP0-1', 'STEP3'],
+    history: DEV_SEED_CH2_SUMMARY.concat([
+      { role: 'user', content: '続けます。第3章（空間の質感と好み）へ進みましょう。' },
+      { role: 'assistant', content: '【ステージ: 空間の質感を探る】空間の好みを伺いました（想定）。まとめ: 明るく開放的・木の素材・落ち着いた照明・ホテルのような洗面。\n【セクション保存: STEP3】' },
+    ]) },
+};
+function injectDevSeed(key) {
+  const seed = DEV_SEEDS[key];
+  if (!seed) return;
+  clearSession();
+  const pay = {};
+  seed.paid.forEach(l => { pay[l] = { at: new Date().toISOString(), sid: null }; });
+  try {
+    localStorage.setItem(PAY_KEY, JSON.stringify(pay));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      version: '0.5',
+      savedAt: new Date().toISOString(),
+      currentStage: seed.stage,
+      completedSections: seed.sections,
+      history: seed.history,
+    }));
+  } catch(e) { alert('注入に失敗: ' + e.message); return; }
+  location.reload();
+}
+function addDevSeedPanel() {
+  if (!IS_DEV) return;
+  const p = document.createElement('div');
+  p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:500;background:#fff;border:1px solid #c9762c;border-radius:8px;padding:8px 10px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.15)';
+  p.innerHTML = '<div style="color:#c9762c;font-weight:600;margin-bottom:6px">テスト開始位置（開発）</div>' +
+    Object.entries(DEV_SEEDS).map(([k, v]) =>
+      `<button style="margin:0 4px 4px 0;padding:4px 8px;font-size:11px;cursor:pointer" onclick="injectDevSeed('${k}')">${v.label}</button>`).join('') +
+    `<button style="margin:0 4px 4px 0;padding:4px 8px;font-size:11px;cursor:pointer" onclick="clearSession();location.reload()">全消去</button>`;
+  document.body.appendChild(p);
+}
+
 // ── 記録ファイルの保存・読み込み（端末内バックアップ）──
 // テキストをファイルとして保存する共通処理。
 // iOS等では共有シート（「"ファイル"に保存」等）、PCでは通常ダウンロード
@@ -1720,9 +1788,10 @@ function resumeSession() {
       else if (!getPaid()[last]) addMilestoneCard(); // キャッシュが無ければ編み直す（別端末で控えから復元した場合など）
     }
     const gated = maybeAddPaywall(last);
-    // 支払い済みなのに次ステップの案内が無いと行き止まりになる
-    // （Stripeから戻って再読込した直後がまさにこの状態）
-    if (!gated && getPaid()[last] && STEP_NEXT_CONFIGS[last] && !stepAlreadyStarted(STEP_NEXT_CONFIGS[last])) {
+    // 次ステップの案内が無いと行き止まりになる
+    // （Stripeから戻って再読込した直後や、支払いのない切れ目=第2章→第3章で離脱して再開した場合）
+    const freeBoundary = !PRICING.stages.some(st => st.after === last && st.price > 0);
+    if (!gated && (getPaid()[last] || freeBoundary) && STEP_NEXT_CONFIGS[last] && !stepAlreadyStarted(STEP_NEXT_CONFIGS[last])) {
       addStepNextCard(STEP_NEXT_CONFIGS[last]);
     }
   }
@@ -3020,6 +3089,7 @@ window.addEventListener('load', async () => {
     history_cleanUrl();
   }
 
+  if (IS_DEV) addDevSeedPanel();
   if (!PROXY_URL && !getApiKey()) {
     showApiKeyModal();
   } else {
