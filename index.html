@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930213706"></script>
+<script src="brief_render.js?v=20260930215747"></script>
 
 <script>
 // ── API接続設定 ──
@@ -722,8 +722,9 @@ const DIALOGUE_THINKING = IS_DEV ? { type: 'between_tools' } : { type: 'disabled
 // 文字が流れる表示（ストリーミング）。まず開発で試験運用（2026-09-30 完走レビューより）。
 // 第2章は関門（締め宣言を見せない仕組み）と両立しないため、常に全文受信後に表示する
 const STREAM_RENDER = IS_DEV;
-// 対話1返信の上限。第2章のまとめ等は1000だと途中で切れる（2026-09-30 開発で実測・5.5はやや長め）
-const DIALOGUE_MAX_TOKENS = 2000;
+// 対話1返信の上限。第2章のまとめ等は1000だと途中で切れる（2026-09-30 開発で実測・5.5はやや長め）。
+// 2000でも濃い人の第2章まとめ（1900字級）が切れた（通しボット検査で検出）→ 3000に
+const DIALOGUE_MAX_TOKENS = 3000;
 // 流れてくる途中のテキスト用の掃除: 閉じていない【…は隠してから、通常のマーカー除去
 function streamClean(t) { return cleanText(t.replace(/【[^】]*$/, '')); }
 function setMsgText(el, text) { if (el) el.innerHTML = text.replace(/\n/g, '<br>'); }
