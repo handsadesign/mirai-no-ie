@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930225033"></script>
+<script src="brief_render.js?v=20260930234126"></script>
 
 <script>
 // ── API接続設定 ──
@@ -714,11 +714,11 @@ if (location.pathname.endsWith('/dev.html')) {
 const PROXY_URL = IS_DEV
   ? 'https://mirai-proxy-dev.hands-a-design.workers.dev'
   : 'https://mirai-proxy.hands-a-design.workers.dev';
-// 対話モデル: 開発ではSonnet 5.5を試験運用（2026-09-30 検証で全項目クリア・文体も良）。本番はSonnet 5のまま。
-// 5.5は thinking:{type:'disabled'} が400のため、思考オフの書き方がモデルで異なる。
-// 本番切り替え時は、先に本番WorkerのALLOWED_MODELSに claude-sonnet-5-5 の手貼りが必要。
-const DIALOGUE_MODEL = IS_DEV ? 'claude-sonnet-5-5' : 'claude-sonnet-5';
-const DIALOGUE_THINKING = IS_DEV ? { type: 'between_tools' } : { type: 'disabled' };
+// 対話モデル: Sonnet 5.5（2026-09-30 切り替え。比較検証・通し走行2本・切り上げ原則の検証を経て）。
+// 5.5は thinking:{type:'disabled'} が400のため between_tools を使う。
+// 巻き戻すときは 'claude-sonnet-5' ＋ {type:'disabled'} に戻して deploy.sh（Worker変更は不要・両モデル許可済み）
+const DIALOGUE_MODEL = 'claude-sonnet-5-5';
+const DIALOGUE_THINKING = { type: 'between_tools' };
 // 文字が流れる表示（ストリーミング）。まず開発で試験運用（2026-09-30 完走レビューより）。
 // 第2章は関門（締め宣言を見せない仕組み）と両立しないため、常に全文受信後に表示する
 const STREAM_RENDER = IS_DEV;
