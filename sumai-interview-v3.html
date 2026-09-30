@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260929225659"></script>
+<script src="brief_render.js?v=20260930093819"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1679,7 +1679,10 @@ function resumeSession() {
   sep.textContent = '— 前回のつづき —';
   chatEl.insertBefore(sep, typingEl);
   addMsg('ai', buildResumeGreeting(session));
-  const lastAI = [...history].reverse().find(m => m.role === 'assistant');
+  // 要望書生成の内部データ（JSON）は「最後の発言」として表示しない
+  // （完成後に再開すると生JSONが吹き出しに出ていた・2026-09-30）
+  const isReportJson = (c) => { const t = c.trim(); return t.startsWith('{') && t.includes('"sections"'); };
+  const lastAI = [...history].reverse().find(m => m.role === 'assistant' && !isReportJson(m.content));
   if (lastAI) addMsg('ai', cleanText(lastAI.content));
   // 最後がカードで終わっていたら、カードごと復元する（離れて戻った人が
   // 問いだけあってボタンが無い画面に着かないように）
