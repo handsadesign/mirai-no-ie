@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930140147"></script>
+<script src="brief_render.js?v=20260930213706"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1339,7 +1339,7 @@ async function fetchCh1Data() {
   const res = await fetch(apiEndpoint(), {
     method: 'POST',
     headers: apiHeaders(),
-    body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 2000, mode: 'chapter1', messages: msgs })
+    body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 4000, mode: 'chapter1', messages: msgs })
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const j = await res.json();
@@ -1978,23 +1978,27 @@ async function sendMsg() {
       document.getElementById('rewind-btn').classList.add('visible');
       document.getElementById('export-btn').classList.add('visible');
     } else {
-      const saveMatch = aiText.match(/【セクション保存[:：]\s*([^】]+)】/);
-      const saveLabel = saveMatch ? saveMatch[1].trim() : null;
+      // 保存マーカーは複数併記されることがある（「【セクション保存: STEP2A】【セクション保存: STEP2B】」——
+      // 通しボットが発見・2026-09-30）。最初の1つだけ見ると第2章の関門が素通りされるため、全部拾う
+      const saveLabels = [...aiText.matchAll(/【セクション保存[:：]\s*([^】]+)】/g)].map(x => x[1].trim());
+      const saveLabel = saveLabels.length ? saveLabels[saveLabels.length - 1] : null;
       // 第2章の関門（SP-405）: 締めの宣言を見せる前に判定する。
       // 通らなければ宣言は表示せず、続きの質問だけを出す——
       // 「終わりです→やっぱりまだ」を繰り返し見せると、一生進まない気がしてくる（2026-09-29 オーナー）
       let gatedStep2b = false;
-      if (saveLabel === 'STEP2B') {
+      if (saveLabels.includes('STEP2B')) {
         showTyping();
         gatedStep2b = !(await ch2GatePassed());
         hideTyping();
       }
       if (!gatedStep2b) showFinal();
       if (saveLabel && !gatedStep2b) {
-        addSaveIndicator(saveLabel);
-        saveSession(saveLabel);
-        sendEvent(saveLabel);
-        if (saveLabel === 'STEP0-1') addMilestoneCard();
+        for (const l of saveLabels) {
+          addSaveIndicator(l);
+          saveSession(l);
+          sendEvent(l);
+          if (l === 'STEP0-1') addMilestoneCard();
+        }
         const gated = maybeAddPaywall(saveLabel);
         const nextConfig = STEP_NEXT_CONFIGS[saveLabel];
         if (!gated && nextConfig) addStepNextCard(nextConfig);
