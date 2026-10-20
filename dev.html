@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260930234126"></script>
+<script src="brief_render.js?v=20261020104141"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1433,8 +1433,10 @@ function addSaveIndicator(label) {
   el.className = 'save-ind';
   // 対話自体は常時自動保存されているため「保存しました」は誤解を招く。
   // この表示は「章の内容が確認済みとして確定した」という節目の合図。
+  // 「控えを残す」: 自発的な保存に頼ると真剣な人ほど消失が致命傷になる（2026-10 実利用者の実害）。
+  // 節目ごとに一回タップで控えを残せる導線を置く
   const nice = SECTION_LABELS[label] || label;
-  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">「${nice}」の内容がまとまりました</span><span class="save-hint"> — 修正・追加はいつでも話しかけてください</span>`;
+  el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">「${nice}」の内容がまとまりました</span><span class="save-hint"> — 修正・追加はいつでも話しかけてください ／ <span class="restore-link" onclick="exportSession()">ここまでの控えを残す</span></span>`;
   appendToChat(el);
 }
 
@@ -1477,7 +1479,7 @@ const STEP_NEXT_CONFIGS = {
   // 「始めましょう」の定型文が送られて、AIに「もう始まっていますよ」と返される事故を防ぐ）
   'STEP0-1': {
     label: '次へ → 第2章 一日の暮らし',
-    title: '次は暮らしのタイムテーブルを振り返ります。できるだけ1週間ほど実際の暮らしをメモしてから始めると、より深い対話ができます。',
+    title: '次は暮らしのタイムテーブルを振り返ります。できるだけ1週間ほど実際の暮らしをメモしてから始めると、より深い対話ができます。日をおいて戻る方は、このページをホーム画面に追加しておくと記録が消えにくくなります（共有ボタン→「ホーム画面に追加」）。',
     primaryLabel: '第2章を始める',
     primaryMsg: '準備ができました。第2章（一日の暮らし）を始めましょう。',
     secondaryLabel: null,
