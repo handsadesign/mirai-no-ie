@@ -685,7 +685,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20261020104141"></script>
+<script src="brief_render.js?v=20261120160548"></script>
 
 <script>
 // ── API接続設定 ──
@@ -1917,7 +1917,7 @@ async function sendMsg() {
   // 対話の深さ（この送信で利用者の発言がn回目に達したとき。中身は含まない）
   // 2〜4はSTEP0研究（入口のどの要素で止まるか）のための解像度
   const nth = userTurns + 1;
-  if ([2, 3, 4, 5, 10, 15].includes(nth)) sendEvent('turns-' + nth);
+  if ([2, 3, 4, 5, 10, 15, 30, 50, 100].includes(nth)) sendEvent('turns-' + nth);
   // 5往復に達した人がどの経路から来たか（数だけ。個人は追わない）
   if (nth === 5) {
     try {
