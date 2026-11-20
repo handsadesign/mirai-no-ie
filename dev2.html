@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>住まいの対話（第2期 開発版）</title>
+<title>住まいの対話</title>
 <meta name="description" content="AIの聞き手との対話から、一冊の「あなたの住まいの本」を。対話を重ねるたびにページが増え、そのまま住まいづくりの要望書になります。話した内容は、私たちが読める形では保存されません。">
 <meta property="og:site_name" content="住まいの対話">
 <meta property="og:type" content="website">
@@ -762,9 +762,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </div>
 
 <!-- Design Brief（ブック体裁の要望書）レンダラ。renderBrief(report, editorial, history) を提供 -->
-<script src="brief_render.js?v=20260724a"></script>
+<script src="brief_render.js?v=20261120164807"></script>
 <!-- 第2期の対話プロンプト（生成物。正本は tools/build_v2_prompt.mjs。開発Workerのroleplay経路で送る） -->
-<script src="v2_prompt.js?v=1794971670062"></script>
+<script src="v2_prompt.js?v=20261120164807"></script>
 
 <script>
 // ── API接続設定 ──
@@ -776,11 +776,14 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 // dev.html: 本番と同じ配信に置く開発版の隠しページ（iPhoneからも開発構成で試せる・2026-09-30）。
 // deploy.sh が sumai-interview-v3.html を dev.html としても配るので、中身は常に同一
 // ── 第2期（sumai-v2.html）──
-// このファイルは第2期の開発ライン。deploy.sh の FILES に入っていないので本番には配布されない。
-// 万一本番ドメインに置かれても開発Worker接続・v2:名前空間のまま動く（本番の統計・支払いを汚さない）
-const IS_DEV = true;
-// v2 の保存キーは常に 'v2:' 空間。本番(無印)・dev.html('dev:')と同じ端末でも混ざらない
-const KEYNS = 'v2:';
+// B6本切替（2026-11-20）: このファイルが本番クライアント。deploy.sh が index.html /
+// sumai-interview-v3.html（旧URL互換）として配布し、dev.html・dev2.html は開発版として配る。
+// 開発＝ファイル名(dev/dev2)・localhost・file: の自己判定。開発Worker接続・v2:名前空間で本番を汚さない
+const IS_DEV = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)
+  || location.pathname.endsWith('/dev.html') || location.pathname.endsWith('/dev2.html');
+// 保存キー空間: 本番(無印)='' … 第1期の記録と同じ空間（再開と移行コードがそのまま読める）。
+// 開発は 'v2:' のまま＝これまでの開発記録と連続し、同じ端末でも本番の記録と混ざらない
+const KEYNS = IS_DEV ? 'v2:' : '';
 // 公開URL上の開発版だけ、簡単な合言葉で一度だけ守る（見つけた人が開発費で使うのを防ぐ程度）
 if (location.pathname.endsWith('/dev.html')) {
   try {
@@ -2323,9 +2326,25 @@ async function startAppendixBuild() {
   } finally { releaseAwake(); }
 }
 
-// 購入の入口（見積もり提示つき）。モック決済を経て startAppendixBuild へ
-function openAppendixCheckout() {
+// 購入の入口（見積もり提示つき）。liveはStripeへ（金額はWorkerが文字数から計算）、
+// テスト中はモック決済を経て startAppendixBuild へ
+async function openAppendixCheckout() {
   const q = appendixQuote();
+  if (PRICING.live) {
+    try {
+      const res = await fetch(PROXY_URL + '/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: 'APPENDIX', chars: q.chars, receipt: getReceipt() }),
+      });
+      const j = await res.json();
+      if (j.url) { location.href = j.url; return; }
+      alert(j.error?.message || '決済画面を開けませんでした。もう一度お試しください。');
+    } catch(e) {
+      alert('決済画面を開けませんでした。通信環境をご確認のうえ、もう一度お試しください。');
+    }
+    return;
+  }
   document.getElementById('mock-pay-item').textContent = `住まいの対話 — 全文の清書（付録）／あなたの対話は約${(q.chars / 10000).toFixed(1)}万字`;
   document.getElementById('mock-pay-amt').textContent = '¥' + q.price.toLocaleString();
   document.getElementById('mock-pay-ov').classList.add('open');
@@ -3016,8 +3035,41 @@ function resumeSession() {
       addStepNextCard(STEP_NEXT_CONFIGS[last]);
     }
   }
+  resumeLivePaidWork();
   scrollBtm(true);
   maybeAttnHelpBtn();
+}
+
+// live決済はStripeから戻ると再読込になるため、「支払い直後にそのまま始まる」処理
+// （本を編む／全文の清書）が切れる。再開時に支払い済みで成果物が無ければ、入口を出し直す。
+// 自動では始めない（再読込のたびに生成が走るのを防ぐ）。モック決済は直結なのでここは通らない
+function resumeLivePaidWork() {
+  try {
+    // 支払い直後の再開なら、控えコードの一枚を添えて控えも更新する（モックのcompleteMockPaymentと同等）
+    if (window._justPaidTier) {
+      window._justPaidTier = null;
+      const envEl = document.createElement('div'); envEl.innerHTML = envelopeCodeCard();
+      if (envEl.firstChild) appendToChat(envEl.firstChild, true);
+      envelopeSend();
+    }
+    const paid = getPaid();
+    const store = loadBookStore();
+    const lastAI = [...history].reverse().find(m => m.role === 'assistant');
+    if (paid['BIND'] && !store.final && lastAI && lastAI.content.includes('【要望書生成】')) {
+      const el = document.createElement('div');
+      el.className = 'save-ind';
+      el.style.display = 'block';
+      el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">「本を編む」のお支払いは完了しています／ <a href="#" onclick="this.closest('.save-ind').remove();startBinding();return false">本を編む</a></span>`;
+      appendToChat(el, true);
+    }
+    if (paid['APPENDIX'] && !store.pages.some(p => p.id === 'appendix')) {
+      const el = document.createElement('div');
+      el.className = 'save-ind';
+      el.style.display = 'block';
+      el.innerHTML = `<span class="save-check">✓</span> <span class="save-label">「全文の清書（付録）」のお支払いは完了しています／ <a href="#" onclick="this.closest('.save-ind').remove();startAppendixBuild();return false">清書をつくる</a></span>`;
+      appendToChat(el, true);
+    }
+  } catch(e) {}
 }
 
 // 最後のメッセージにキャッシュ地点を置く：次回の呼び出しで前回までの
@@ -4352,6 +4404,7 @@ window.addEventListener('load', async () => {
     history_cleanUrl();
     try {
       const j = await verifyPurchase(qp.get('session_id'));
+      window._justPaidTier = j.tier; // 再開時に控えコードの一枚を添える（live決済は再読込を挟むため）
       if (loadSession()?.history?.length) {
         alert(`お支払いを確認しました。ありがとうございます。\n\n購入復元コード（控え）:\n${j.session_id}\n\n端末の記録が消えた場合、このコードで購入を復元できます。「記録を保存」のファイルにも含まれます。`);
       } else {
